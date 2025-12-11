@@ -45,9 +45,14 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Load cached data on mount
+  // Load cached data on mount, or fetch if no cache
   useEffect(() => {
-    loadCachedData();
+    const hasCache = loadCachedData();
+    // If no cache exists, fetch data on initial load
+    if (!hasCache) {
+      console.log('No cache found, fetching data on initial load...');
+      fetchFees(false); // Fetch without forcing API (will use CSV in local dev)
+    }
   }, []);
 
   // Load data from localStorage cache
@@ -75,7 +80,7 @@ export default function Home() {
     } catch (err) {
       console.error('Error loading cache:', err);
     }
-    setLoading(false);
+    // Don't set loading to false here - let fetchFees handle it
     return false;
   };
 
