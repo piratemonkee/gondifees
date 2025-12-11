@@ -16,16 +16,18 @@ import { Transaction } from '@/lib/types';
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
 
-// Track function start time to prevent timeout
-const FUNCTION_START_TIME = Date.now();
+// Maximum function duration (Vercel limit is 60s, we use 55s as safety buffer)
 const MAX_FUNCTION_DURATION = 55000; // 55 seconds (leave 5s buffer)
 
-function checkTimeRemaining(): number {
-  const elapsed = Date.now() - FUNCTION_START_TIME;
-  return MAX_FUNCTION_DURATION - elapsed;
-}
-
 export async function GET(request: Request) {
+  // Track function start time for this request
+  const FUNCTION_START_TIME = Date.now();
+  
+  function checkTimeRemaining(): number {
+    const elapsed = Date.now() - FUNCTION_START_TIME;
+    return MAX_FUNCTION_DURATION - elapsed;
+  }
+  
   try {
     const { searchParams } = new URL(request.url);
     const useDemo = searchParams.get('demo') === 'true';
