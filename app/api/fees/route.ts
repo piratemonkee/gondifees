@@ -16,6 +16,15 @@ import { Transaction } from '@/lib/types';
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
 
+// Track function start time to prevent timeout
+const FUNCTION_START_TIME = Date.now();
+const MAX_FUNCTION_DURATION = 55000; // 55 seconds (leave 5s buffer)
+
+function checkTimeRemaining(): number {
+  const elapsed = Date.now() - FUNCTION_START_TIME;
+  return MAX_FUNCTION_DURATION - elapsed;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -144,9 +153,23 @@ export async function GET(request: Request) {
           
           console.log(`📊 Fetch strategy: Ethereum from block ${ethereumStartBlock}, HyperEVM from block ${hyperevmStartBlock}`);
           
+          // Check time remaining before starting API calls
+          const timeRemaining = checkTimeRemaining();
+          if (timeRemaining < 10000) {
+            console.warn('⚠️ Not enough time remaining, returning timeout error early');
+            return NextResponse.json({
+              success: false,
+              error: 'Request Timeout',
+              details: 'The request would take too long. Please use "Full Refresh" button or try again later.',
+              hint: 'For first-time setup, the initial data fetch may take longer. Try using the "Full Refresh" button.',
+              timeout: true,
+            }, { status: 504 });
+          }
+          
           // Fetch both APIs independently so one failure doesn't break the other
-          // Add timeout wrapper to prevent Vercel function timeout
-          const API_TIMEOUT = 50000; // 50 seconds (leave 10s buffer for processing)
+          // Use dynamic timeout based on remaining function time
+          const API_TIMEOUT = Math.min(40000, timeRemaining - 10000); // Leave 10s buffer for processing
+          console.log(`⏱️ Starting API calls with ${API_TIMEOUT}ms timeout (${timeRemaining}ms remaining)`);
           
           const fetchWithTimeout = async <T>(
             promise: Promise<T>,
