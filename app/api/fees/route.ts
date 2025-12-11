@@ -72,30 +72,70 @@ export async function GET(request: Request) {
           const ethereumTxs = ethereumResult.status === 'fulfilled' ? ethereumResult.value : [];
           const hyperevmTxs = hyperevmResult.status === 'fulfilled' ? hyperevmResult.value : [];
 
+          // Log detailed error information for production debugging
           if (ethereumResult.status === 'rejected') {
-            console.error('Ethereum API failed:', ethereumResult.reason);
+            const error = ethereumResult.reason;
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error('❌ Ethereum API failed:', errorMsg);
+            console.error('Ethereum error details:', {
+              message: errorMsg,
+              stack: error instanceof Error ? error.stack : undefined,
+              hasApiKey: !!process.env.ETHERSCAN_API_KEY,
+              isProduction: process.env.VERCEL === '1'
+            });
           }
           if (hyperevmResult.status === 'rejected') {
-            console.error('HyperEVM API failed:', hyperevmResult.reason);
+            const error = hyperevmResult.reason;
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error('❌ HyperEVM API failed:', errorMsg);
+            console.error('HyperEVM error details:', {
+              message: errorMsg,
+              stack: error instanceof Error ? error.stack : undefined,
+              hasApiKey: !!process.env.ETHERSCAN_API_KEY,
+              isProduction: process.env.VERCEL === '1'
+            });
           }
 
-          console.log(`Ethereum transactions from API: ${ethereumTxs.length}`);
-          console.log(`HyperEVM transactions from API: ${hyperevmTxs.length}`);
+          console.log(`✅ Ethereum transactions from API: ${ethereumTxs.length}`);
+          console.log(`✅ HyperEVM transactions from API: ${hyperevmTxs.length}`);
 
           allTransactions = [...ethereumTxs, ...hyperevmTxs];
           
           if (allTransactions.length === 0) {
-            const errorMsg = 'No transactions found from APIs. Please check:\n' +
-              '1. ETHERSCAN_API_KEY environment variable is set in Vercel\n' +
-              '2. API rate limits have not been exceeded\n' +
-              '3. Network connectivity is working';
-            console.error(errorMsg);
+            const hasApiKey = !!process.env.ETHERSCAN_API_KEY;
+            const errorMsg = hasApiKey
+              ? 'No transactions found from APIs. This could be due to:\n' +
+                '1. API rate limits exceeded (wait a moment and try again)\n' +
+                '2. Network timeout (Vercel functions have execution time limits)\n' +
+                '3. API temporarily unavailable'
+              : 'ETHERSCAN_API_KEY environment variable is not set in Vercel. Please add it in your Vercel project settings under Environment Variables.';
+            console.error('❌', errorMsg);
+            console.error('Environment check:', {
+              hasApiKey,
+              isProduction: process.env.VERCEL === '1',
+              nodeEnv: process.env.NODE_ENV,
+              vercelEnv: process.env.VERCEL_ENV
+            });
             throw new Error(errorMsg);
           }
         } catch (apiError) {
           console.error('API fetch error:', apiError);
           const errorMessage = apiError instanceof Error ? apiError.message : String(apiError);
-          throw new Error(`Failed to fetch from blockchain APIs: ${errorMessage}. Please ensure ETHERSCAN_API_KEY is set in Vercel environment variables.`);
+          const hasApiKey = !!process.env.ETHERSCAN_API_KEY;
+          
+          // Provide more helpful error messages based on the issue
+          let userFriendlyError = 'Failed to fetch from blockchain APIs. ';
+          if (!hasApiKey) {
+            userFriendlyError += 'ETHERSCAN_API_KEY is not set in Vercel environment variables. Please add it in your Vercel project settings.';
+          } else if (errorMessage.includes('timeout') || errorMessage.includes('aborted')) {
+            userFriendlyError += 'Request timed out. This may be due to Vercel function execution limits. Try again in a moment.';
+          } else if (errorMessage.includes('rate limit')) {
+            userFriendlyError += 'API rate limit exceeded. Please wait a moment and try again.';
+          } else {
+            userFriendlyError += errorMessage;
+          }
+          
+          throw new Error(userFriendlyError);
         }
       }
     }
@@ -164,14 +204,27 @@ export async function GET(request: Request) {
       }
     });
     
+    // Provide helpful hints based on error type
+    let hint = 'Check server logs for more details';
+    if (errorMessage.includes('ETHERSCAN_API_KEY')) {
+      hint = 'Please set ETHERSCAN_API_KEY in Vercel project settings > Environment Variables';
+    } else if (errorMessage.includes('timeout')) {
+      hint = 'Vercel functions have execution time limits. The request may have timed out.';
+    } else if (errorMessage.includes('rate limit')) {
+      hint = 'API rate limit exceeded. Wait a moment and try again.';
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
         error: 'Failed to fetch fee data',
         details: errorMessage,
-        hint: errorMessage.includes('ETHERSCAN_API_KEY') 
-          ? 'Please set ETHERSCAN_API_KEY in Vercel environment variables'
-          : 'Check server logs for more details'
+        hint: hint,
+        env: {
+          hasApiKey: !!process.env.ETHERSCAN_API_KEY,
+          isProduction: process.env.VERCEL === '1',
+          nodeEnv: process.env.NODE_ENV
+        }
       },
       { status: 500 }
     );

@@ -45,8 +45,13 @@ async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> 
     try {
       console.log(`Fetching from API (attempt ${i + 1}/${retries})...`);
       // Create timeout controller for better compatibility
+      // Vercel Hobby plan has 10s timeout, Pro has 60s - use 8s to be safe
+      const timeoutMs = process.env.VERCEL === '1' ? 8000 : 30000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => {
+        console.warn(`⏱️ Request timeout after ${timeoutMs}ms`);
+        controller.abort();
+      }, timeoutMs);
       
       const response = await fetch(url, {
         signal: controller.signal,

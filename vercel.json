@@ -1,4 +1,9 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "functions": {
+    "app/api/fees/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }
 
