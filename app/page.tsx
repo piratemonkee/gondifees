@@ -45,23 +45,81 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Load cached data on mount
   useEffect(() => {
-    fetchFees();
+    loadCachedData();
   }, []);
+
+  // Load data from localStorage cache
+  const loadCachedData = () => {
+    try {
+      const cached = localStorage.getItem('gondi-fees-cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const cacheTime = new Date(parsed.timestamp);
+        const now = new Date();
+        const hoursSinceUpdate = (now.getTime() - cacheTime.getTime()) / (1000 * 60 * 60);
+        
+        // Use cache if less than 24 hours old
+        if (hoursSinceUpdate < 24) {
+          setData(parsed.data);
+          setRecentTransactions(parsed.recentTransactions || []);
+          setLastUpdated(cacheTime);
+          setLoading(false);
+          console.log('✅ Loaded data from cache');
+          return true;
+        } else {
+          console.log('⚠️ Cache expired, will fetch fresh data');
+        }
+      }
+    } catch (err) {
+      console.error('Error loading cache:', err);
+    }
+    setLoading(false);
+    return false;
+  };
+
+  // Save data to localStorage cache
+  const saveToCache = (data: AggregatedFees, recentTransactions: RecentTransaction[]) => {
+    try {
+      const cacheData = {
+        data,
+        recentTransactions,
+        timestamp: new Date().toISOString(),
+      };
+      localStorage.setItem('gondi-fees-cache', JSON.stringify(cacheData));
+      console.log('✅ Saved data to cache');
+    } catch (err) {
+      console.error('Error saving cache:', err);
+    }
+  };
 
   const fetchFees = async (forceApi: boolean = false) => {
     try {
       setLoading(true);
       setError(null);
       const url = forceApi ? '/api/fees?forceApi=true' : '/api/fees';
+      
       const response = await fetch(url);
+      
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text.substring(0, 200));
+        throw new Error(`Server returned ${response.status}: ${response.statusText}. Response is not JSON.`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
         setData(result.data);
         setRecentTransactions(result.recentTransactions || []);
         setLastUpdated(new Date());
-        setError(null); // Clear any previous errors
+        setError(null);
+        
+        // Save to cache
+        saveToCache(result.data, result.recentTransactions || []);
       } else {
         const errorMsg = result.error || 'Failed to fetch data';
         const details = result.details || '';
@@ -70,7 +128,15 @@ export default function Home() {
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch fee data';
-      setError(`Network error: ${errorMsg}`);
+      
+      // If we have cached data, don't show error, just use cache
+      const hasCache = loadCachedData();
+      if (!hasCache) {
+        setError(`Network error: ${errorMsg}`);
+      } else {
+        setError(null); // Clear error if we have cache
+      }
+      
       console.error('Fetch error:', err);
     } finally {
       setLoading(false);
@@ -78,6 +144,7 @@ export default function Home() {
   };
 
   const handleUpdate = async () => {
+    // Always fetch from API when Update is clicked
     await fetchFees(true); // Force API update
   };
 

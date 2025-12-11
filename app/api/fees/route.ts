@@ -231,6 +231,7 @@ export async function GET(request: Request) {
       hint = 'API rate limit exceeded. Wait a moment and try again.';
     }
     
+    // Always return valid JSON, even on error
     return NextResponse.json(
       { 
         success: false, 
@@ -243,7 +244,12 @@ export async function GET(request: Request) {
           nodeEnv: process.env.NODE_ENV
         }
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
     );
   }
 }
