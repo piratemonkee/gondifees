@@ -44,10 +44,15 @@ async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> 
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`Fetching from API (attempt ${i + 1}/${retries})...`);
+      // Create timeout controller for better compatibility
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch(url, {
-        // Add timeout and better error handling
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         console.error(`API returned status ${response.status}: ${response.statusText}`);
