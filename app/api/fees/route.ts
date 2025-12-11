@@ -63,10 +63,21 @@ export async function GET(request: Request) {
         console.log('Fetching transactions from Ethereum and HyperEVM APIs...');
         
         try {
-          const [ethereumTxs, hyperevmTxs] = await Promise.all([
+          // Fetch both APIs independently so one failure doesn't break the other
+          const [ethereumResult, hyperevmResult] = await Promise.allSettled([
             fetchEthereumTransactions(),
             fetchHyperEVMTransactions(),
           ]);
+
+          const ethereumTxs = ethereumResult.status === 'fulfilled' ? ethereumResult.value : [];
+          const hyperevmTxs = hyperevmResult.status === 'fulfilled' ? hyperevmResult.value : [];
+
+          if (ethereumResult.status === 'rejected') {
+            console.error('Ethereum API failed:', ethereumResult.reason);
+          }
+          if (hyperevmResult.status === 'rejected') {
+            console.error('HyperEVM API failed:', hyperevmResult.reason);
+          }
 
           console.log(`Ethereum transactions from API: ${ethereumTxs.length}`);
           console.log(`HyperEVM transactions from API: ${hyperevmTxs.length}`);

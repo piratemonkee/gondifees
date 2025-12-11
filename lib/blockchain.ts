@@ -162,7 +162,14 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     
     return transactions;
   } catch (error) {
-    console.error('Error fetching Ethereum transactions:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching Ethereum transactions:', errorMsg);
+    console.error('Full error details:', {
+      message: errorMsg,
+      stack: error instanceof Error ? error.stack : undefined,
+      hasApiKey: !!ETHERSCAN_API_KEY
+    });
+    // Return empty array to allow partial success (HyperEVM might still work)
     return [];
   }
 }
@@ -253,7 +260,14 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
     
     return transactions;
   } catch (error) {
-    console.error('Error fetching HyperEVM transactions:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching HyperEVM transactions:', errorMsg);
+    console.error('Full error details:', {
+      message: errorMsg,
+      stack: error instanceof Error ? error.stack : undefined,
+      hasApiKey: !!ETHERSCAN_API_KEY
+    });
+    // Return empty array to allow partial success (Ethereum might still work)
     return [];
   }
 }
