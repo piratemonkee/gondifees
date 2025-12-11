@@ -9,8 +9,6 @@ export async function aggregateFees(transactions: Transaction[]): Promise<Aggreg
   const monthly: { [month: string]: { total: number; totalUSD: number; currencies: { [currency: string]: number }; currenciesUSD: { [currency: string]: number } } } = {};
   const currencyTotals: { [currency: string]: number } = {};
   const currencyTotalsUSD: { [currency: string]: number } = {};
-  let loanTotalUSD = 0;
-  let saleTotalUSD = 0;
 
   // Filter transactions from Oct 22, 2025 onwards
   // Accept: USDC, WETH (Ethereum), HUSDC, WHYPE (HyperEVM)
@@ -89,14 +87,6 @@ export async function aggregateFees(transactions: Transaction[]): Promise<Aggreg
     // Currency totals
     currencyTotals[currency] = (currencyTotals[currency] || 0) + value;
     currencyTotalsUSD[currency] = (currencyTotalsUSD[currency] || 0) + valueUSD;
-    
-    // Fee type totals
-    const feeType = tx.feeType || 'unknown';
-    if (feeType === 'loan') {
-      loanTotalUSD += valueUSD;
-    } else if (feeType === 'sale') {
-      saleTotalUSD += valueUSD;
-    }
   });
 
   // Calculate total and percentages for currency breakdown
@@ -124,27 +114,11 @@ export async function aggregateFees(transactions: Transaction[]): Promise<Aggreg
     console.log(`${currency}: ${total.toFixed(6)} tokens, price: $${price}, USD total: $${usdTotal.toFixed(2)}`);
   });
 
-  const result: AggregatedFees = {
+  return {
     daily,
     weekly,
     monthly,
     currencyBreakdown,
   };
-  
-  // Add fee type breakdown if we have classified transactions
-  if (loanTotalUSD > 0 || saleTotalUSD > 0) {
-    result.feeTypeBreakdown = {
-      loan: {
-        totalUSD: loanTotalUSD,
-        percentage: grandTotalUSD > 0 ? (loanTotalUSD / grandTotalUSD) * 100 : 0,
-      },
-      sale: {
-        totalUSD: saleTotalUSD,
-        percentage: grandTotalUSD > 0 ? (saleTotalUSD / grandTotalUSD) * 100 : 0,
-      },
-    };
-  }
-
-  return result;
 }
 
