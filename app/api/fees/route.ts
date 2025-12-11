@@ -3,8 +3,15 @@ import { fetchEthereumTransactions, fetchHyperEVMTransactions } from '@/lib/bloc
 import { aggregateFees } from '@/lib/aggregate';
 import { generateDemoData } from '@/lib/demo-data';
 import { parseCSVTransactions } from '@/lib/csv-parser';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { 
+  getStartBlock, 
+  updateLastProcessedTransaction, 
+  findLatestTransaction,
+  getLastProcessedTransaction 
+} from '@/lib/last-processed';
+import { Transaction } from '@/lib/types';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -31,42 +38,100 @@ export async function GET(request: Request) {
       let useCsv = false;
       if (!isProduction && !forceApi) {
         // Try CSV files only in local development
+        // Support multiple possible CSV locations
+        const possibleCsvPaths = [
+          '/Users/guimar/Downloads/export-address-token-0x4169447a424ec645f8a24dccfd8328f714dd5562.csv',
+          process.env.ETHEREUM_CSV_PATH,
+          join(process.cwd(), 'data', 'ethereum-transactions.csv'),
+          join(process.cwd(), 'ethereum-transactions.csv'),
+        ].filter(Boolean) as string[];
+        
+        const possibleHyperEvmPaths = [
+          '/Users/guimar/Downloads/export-address-token-0xbc0b9c63dc0581278d4b554af56858298bf2a9ec.csv',
+          process.env.HYPEREVM_CSV_PATH,
+          join(process.cwd(), 'data', 'hyperevm-transactions.csv'),
+          join(process.cwd(), 'hyperevm-transactions.csv'),
+        ].filter(Boolean) as string[];
+        
         try {
-          const ethereumCsvPath = '/Users/guimar/Downloads/export-address-token-0x4169447a424ec645f8a24dccfd8328f714dd5562.csv';
-          const hyperevmCsvPath = '/Users/guimar/Downloads/export-address-token-0xbc0b9c63dc0581278d4b554af56858298bf2a9ec.csv';
+          // Try to find Ethereum CSV file
+          let ethereumTxs: any[] = [];
+          let ethereumCsvFound = false;
+          for (const csvPath of possibleCsvPaths) {
+            try {
+              if (csvPath && existsSync(csvPath)) {
+                const ethereumCsvContent = readFileSync(csvPath, 'utf-8');
+                ethereumTxs = parseCSVTransactions(ethereumCsvContent, 'ethereum');
+                console.log(`✅ Loaded ${ethereumTxs.length} Ethereum transactions from CSV: ${csvPath}`);
+                ethereumCsvFound = true;
+                break;
+              }
+            } catch (err) {
+              // Try next path
+              continue;
+            }
+          }
           
-          const ethereumCsvContent = readFileSync(ethereumCsvPath, 'utf-8');
-          const ethereumTxs = parseCSVTransactions(ethereumCsvContent, 'ethereum');
-          console.log(`Loaded ${ethereumTxs.length} Ethereum transactions from CSV`);
+          if (!ethereumCsvFound) {
+            console.log('ℹ️ Ethereum CSV file not found, will use API. Tried paths:', possibleCsvPaths);
+          }
           
+          // Try to find HyperEVM CSV file
           let hyperevmTxs: any[] = [];
-          try {
-            const hyperevmCsvContent = readFileSync(hyperevmCsvPath, 'utf-8');
-            hyperevmTxs = parseCSVTransactions(hyperevmCsvContent, 'hyperevm');
-            console.log(`Loaded ${hyperevmTxs.length} HyperEVM transactions from CSV`);
-          } catch (hyperevmError) {
-            console.log('Could not read HyperEVM CSV file:', hyperevmError);
+          let hyperevmCsvFound = false;
+          for (const csvPath of possibleHyperEvmPaths) {
+            try {
+              if (csvPath && existsSync(csvPath)) {
+                const hyperevmCsvContent = readFileSync(csvPath, 'utf-8');
+                hyperevmTxs = parseCSVTransactions(hyperevmCsvContent, 'hyperevm');
+                console.log(`✅ Loaded ${hyperevmTxs.length} HyperEVM transactions from CSV: ${csvPath}`);
+                hyperevmCsvFound = true;
+                break;
+              }
+            } catch (err) {
+              // Try next path
+              continue;
+            }
+          }
+          
+          if (!hyperevmCsvFound) {
+            console.log('ℹ️ HyperEVM CSV file not found, will use API. Tried paths:', possibleHyperEvmPaths);
           }
           
           allTransactions = [...ethereumTxs, ...hyperevmTxs];
           
           if (allTransactions.length > 0) {
             useCsv = true;
+            console.log(`✅ Using CSV data: ${ethereumTxs.length} Ethereum + ${hyperevmTxs.length} HyperEVM transactions`);
+          } else {
+            console.log('ℹ️ No CSV data found, will use API instead');
           }
         } catch (csvError) {
-          console.log('Could not read CSV file, will use API:', csvError);
+          console.log('ℹ️ Could not read CSV files, will use API:', csvError instanceof Error ? csvError.message : String(csvError));
         }
       }
       
       // Use API if not using CSV
       if (!useCsv) {
-        console.log('Fetching transactions from Ethereum and HyperEVM APIs...');
+        const { searchParams } = new URL(request.url);
+        const incremental = searchParams.get('incremental') !== 'false'; // Default to true
+        const fullRefresh = searchParams.get('fullRefresh') === 'true';
+        
+        if (fullRefresh) {
+          console.log('🔄 Full refresh requested - fetching all transactions from October 22, 2025');
+        } else if (incremental) {
+          console.log('🔄 Incremental update - fetching only new transactions since last update');
+        }
         
         try {
+          // Get start blocks for incremental fetching
+          const ethereumStartBlock = fullRefresh ? 0 : (incremental ? getStartBlock('ethereum') : 0);
+          const hyperevmStartBlock = fullRefresh ? 0 : (incremental ? getStartBlock('hyperevm') : 0);
+          
           // Fetch both APIs independently so one failure doesn't break the other
           const [ethereumResult, hyperevmResult] = await Promise.allSettled([
-            fetchEthereumTransactions(),
-            fetchHyperEVMTransactions(),
+            fetchEthereumTransactions(ethereumStartBlock),
+            fetchHyperEVMTransactions(hyperevmStartBlock),
           ]);
 
           const ethereumTxs = ethereumResult.status === 'fulfilled' ? ethereumResult.value : [];
@@ -104,10 +169,83 @@ export async function GET(request: Request) {
             });
           }
 
-          console.log(`✅ Ethereum transactions from API: ${ethereumTxs.length}`);
-          console.log(`✅ HyperEVM transactions from API: ${hyperevmTxs.length}`);
+          console.log(`✅ Ethereum transactions from API: ${ethereumTxs.length} (from block ${ethereumStartBlock})`);
+          console.log(`✅ HyperEVM transactions from API: ${hyperevmTxs.length} (from block ${hyperevmStartBlock})`);
+          
+          // Log breakdown by token for debugging
+          const ethereumByToken: { [key: string]: number } = {};
+          ethereumTxs.forEach(tx => {
+            const symbol = (tx.tokenSymbol || '').toUpperCase();
+            ethereumByToken[symbol] = (ethereumByToken[symbol] || 0) + 1;
+          });
+          console.log('Ethereum transactions by token:', ethereumByToken);
+          
+          const hyperevmByToken: { [key: string]: number } = {};
+          hyperevmTxs.forEach(tx => {
+            const symbol = (tx.tokenSymbol || '').toUpperCase();
+            hyperevmByToken[symbol] = (hyperevmByToken[symbol] || 0) + 1;
+          });
+          console.log('HyperEVM transactions by token:', hyperevmByToken);
+
+          // If incremental update, we need to merge with existing transactions
+          // For now, we'll fetch all transactions on each update
+          // In production, you'd store all transactions in a database and only fetch new ones
+          if (incremental && !fullRefresh) {
+            const lastEthereum = getLastProcessedTransaction('ethereum');
+            const lastHyperEVM = getLastProcessedTransaction('hyperevm');
+            
+            if (lastEthereum || lastHyperEVM) {
+              console.log('🔄 Incremental update mode:');
+              if (lastEthereum) {
+                console.log(`  Ethereum: last processed block ${lastEthereum.blockNumber}, fetched ${ethereumTxs.length} new transactions`);
+              }
+              if (lastHyperEVM) {
+                console.log(`  HyperEVM: last processed block ${lastHyperEVM.blockNumber}, fetched ${hyperevmTxs.length} new transactions`);
+              }
+            } else {
+              console.log('🔄 First time update: fetching all transactions from October 22, 2025');
+            }
+          }
+          
+          // Update last processed transactions if we got new data
+          if (ethereumTxs.length > 0) {
+            const latestEthereum = findLatestTransaction(ethereumTxs);
+            if (latestEthereum) {
+              updateLastProcessedTransaction(
+                'ethereum',
+                latestEthereum.blockNumber,
+                latestEthereum.timestamp,
+                latestEthereum.hash
+              );
+              console.log(`✅ Updated Ethereum last processed: block ${latestEthereum.blockNumber}`);
+            }
+          } else if (ethereumStartBlock > 0) {
+            console.log(`ℹ️ No new Ethereum transactions found (checked from block ${ethereumStartBlock})`);
+          }
+          
+          if (hyperevmTxs.length > 0) {
+            const latestHyperEVM = findLatestTransaction(hyperevmTxs);
+            if (latestHyperEVM) {
+              updateLastProcessedTransaction(
+                'hyperevm',
+                latestHyperEVM.blockNumber,
+                latestHyperEVM.timestamp,
+                latestHyperEVM.hash
+              );
+              console.log(`✅ Updated HyperEVM last processed: block ${latestHyperEVM.blockNumber}`);
+            }
+          } else if (hyperevmStartBlock > 0) {
+            console.log(`ℹ️ No new HyperEVM transactions found (checked from block ${hyperevmStartBlock})`);
+          }
 
           allTransactions = [...ethereumTxs, ...hyperevmTxs];
+          
+          // If this is an incremental update with new transactions, we need to merge with existing data
+          // For now, we'll return the new transactions and let the frontend handle merging
+          // In production, you'd merge server-side with a database
+          if (incremental && !fullRefresh && allTransactions.length > 0) {
+            console.log(`📊 Incremental update: ${allTransactions.length} new transactions to process`);
+          }
           
           if (allTransactions.length === 0) {
             const hasApiKey = !!process.env.ETHERSCAN_API_KEY;
@@ -148,8 +286,18 @@ export async function GET(request: Request) {
       }
     }
 
+    console.log('\n🔄 Starting fee aggregation...');
+    console.log(`Total transactions to aggregate: ${allTransactions.length}`);
+    console.log(`  - Ethereum: ${allTransactions.filter(tx => tx.network === 'ethereum').length}`);
+    console.log(`  - HyperEVM: ${allTransactions.filter(tx => tx.network === 'hyperevm').length}`);
+    
     // Aggregate fees (now async and includes USD conversion)
     const aggregated = await aggregateFees(allTransactions);
+    
+    // Log final summary
+    const grandTotalUSD = Object.values(aggregated.currencyBreakdown).reduce((sum, breakdown) => sum + breakdown.totalUSD, 0);
+    console.log(`\n✅ Aggregation complete! Grand total: $${grandTotalUSD.toFixed(2)}`);
+    console.log(`Expected: ~$68,000 | Actual: $${grandTotalUSD.toFixed(2)} | Difference: $${(grandTotalUSD - 68000).toFixed(2)}`);
 
     // Get prices for USD conversion
     const { getMultipleTokenPrices } = await import('@/lib/prices');
@@ -185,6 +333,10 @@ export async function GET(request: Request) {
         };
       });
 
+    // Get last processed info for response
+    const lastEthereum = getLastProcessedTransaction('ethereum');
+    const lastHyperEVM = getLastProcessedTransaction('hyperevm');
+    
     return NextResponse.json({
       success: true,
       data: aggregated,
@@ -195,7 +347,21 @@ export async function GET(request: Request) {
         ethereumTransactions: allTransactions.filter(tx => tx.network === 'ethereum').length,
         hyperevmTransactions: allTransactions.filter(tx => tx.network === 'hyperevm').length,
       },
-      version: '2025-01-11-v2', // Version identifier for debugging
+      lastProcessed: {
+        ethereum: lastEthereum ? {
+          blockNumber: lastEthereum.blockNumber,
+          timestamp: lastEthereum.timestamp,
+          hash: lastEthereum.hash,
+          lastUpdated: lastEthereum.lastUpdated,
+        } : null,
+        hyperevm: lastHyperEVM ? {
+          blockNumber: lastHyperEVM.blockNumber,
+          timestamp: lastHyperEVM.timestamp,
+          hash: lastHyperEVM.hash,
+          lastUpdated: lastHyperEVM.lastUpdated,
+        } : null,
+      },
+      version: '2025-01-11-v3', // Version identifier for debugging (incremental updates)
       commitHash: process.env.VERCEL_GIT_COMMIT_SHA || process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'local',
       buildId: process.env.VERCEL ? (process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'unknown') : 'local',
       environment: {

@@ -47,6 +47,20 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Monitor data changes
+  useEffect(() => {
+    if (data) {
+      console.log('🔄 Data state updated:', {
+        hasCurrencyBreakdown: !!data.currencyBreakdown,
+        currencies: Object.keys(data.currencyBreakdown || {}),
+        USDC: data.currencyBreakdown?.USDC?.totalUSD,
+        WETH: data.currencyBreakdown?.WETH?.totalUSD,
+        HUSDC: data.currencyBreakdown?.HUSDC?.totalUSD,
+        WHYPE: data.currencyBreakdown?.WHYPE?.totalUSD,
+      });
+    }
+  }, [data]);
+
   // Load cached data on mount, or fetch if no cache
   useEffect(() => {
     const hasCache = loadCachedData();
@@ -67,8 +81,37 @@ export default function Home() {
         const now = new Date();
         const hoursSinceUpdate = (now.getTime() - cacheTime.getTime()) / (1000 * 60 * 60);
         
+        // Validate cache data - check if Ethereum fees are $0 (invalid cache)
+        const ethereumTotal = (parsed.data?.currencyBreakdown?.USDC?.totalUSD || 0) + 
+                             (parsed.data?.currencyBreakdown?.WETH?.totalUSD || 0);
+        const hasInvalidEthereumData = ethereumTotal === 0 && 
+                                       (parsed.data?.currencyBreakdown?.HUSDC?.totalUSD || 0) > 0;
+        
+        if (hasInvalidEthereumData) {
+          console.warn('⚠️ Cache has invalid data (Ethereum fees are $0 but HyperEVM has data). Clearing cache and fetching fresh data.');
+          localStorage.removeItem('gondi-fees-cache');
+          return false;
+        }
+        
         // Use cache if less than 24 hours old
         if (hoursSinceUpdate < 24) {
+          console.log('📦 Loading from cache...');
+          console.log('📦 Cached currency breakdown:', parsed.data?.currencyBreakdown);
+          
+          // Debug cached values
+          if (parsed.data?.currencyBreakdown) {
+            const cachedUSDC = parsed.data.currencyBreakdown.USDC?.totalUSD || 0;
+            const cachedWETH = parsed.data.currencyBreakdown.WETH?.totalUSD || 0;
+            console.log('📦 Cached USDC:', cachedUSDC);
+            console.log('📦 Cached WETH:', cachedWETH);
+            console.log('📦 Cached Ethereum Total:', cachedUSDC + cachedWETH);
+            
+            // Warn if Ethereum data looks wrong
+            if (cachedUSDC === 0 && cachedWETH === 0) {
+              console.warn('⚠️ WARNING: Cached Ethereum fees are both $0. This might be invalid data.');
+            }
+          }
+          
           setData(parsed.data);
           setRecentTransactions(parsed.recentTransactions || []);
           setLastUpdated(cacheTime);
@@ -127,6 +170,27 @@ export default function Home() {
       const result = await response.json();
       
       if (result.success) {
+        console.log('✅ Data received from API:', {
+          hasData: !!result.data,
+          currencyBreakdown: result.data?.currencyBreakdown,
+          stats: result.stats
+        });
+        
+        // Debug: Log each currency value
+        if (result.data?.currencyBreakdown) {
+          console.log('🔍 Currency Breakdown Values:');
+          console.log('  USDC:', result.data.currencyBreakdown.USDC);
+          console.log('  WETH:', result.data.currencyBreakdown.WETH);
+          console.log('  HUSDC:', result.data.currencyBreakdown.HUSDC);
+          console.log('  WHYPE:', result.data.currencyBreakdown.WHYPE);
+          
+          // Calculate totals
+          const ethereumTotal = (result.data.currencyBreakdown.USDC?.totalUSD || 0) + (result.data.currencyBreakdown.WETH?.totalUSD || 0);
+          const hyperevmTotal = (result.data.currencyBreakdown.HUSDC?.totalUSD || 0) + (result.data.currencyBreakdown.WHYPE?.totalUSD || 0);
+          console.log('  Ethereum Total:', ethereumTotal);
+          console.log('  HyperEVM Total:', hyperevmTotal);
+        }
+        
         setData(result.data);
         setRecentTransactions(result.recentTransactions || []);
         setLastUpdated(new Date());
@@ -191,20 +255,109 @@ export default function Home() {
     }
   };
 
-  const handleUpdate = async () => {
-    // Always fetch from API when Update is clicked
-    // Pass isUpdate=true so we don't clear the screen
-    await fetchFees(true, true); // Force API update, isUpdate=true
+  const handleUpdate = async (fullRefresh: boolean = false): Promise<void> => {
+    setIsUpdating(true);
+    setUpdateMessage({ 
+      type: 'info', 
+      text: fullRefresh 
+        ? '🔄 Performing full refresh - fetching all transactions...' 
+        : '🔄 Checking for new transactions since last update...' 
+    });
+    
+    try {
+      // Always fetch from API when Update is clicked
+      // By default, use incremental update (only fetch new transactions)
+      const url = fullRefresh 
+        ? '/api/fees?forceApi=true&fullRefresh=true'
+        : '/api/fees?forceApi=true&incremental=true';
+      
+      const response = await fetch(url);
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Update successful:', {
+          newTransactions: result.stats?.totalTransactions || 0,
+          lastProcessed: result.lastProcessed,
+        });
+        
+        // Show update message
+        const ethereumNew = result.stats?.ethereumTransactions || 0;
+        const hyperevmNew = result.stats?.hyperevmTransactions || 0;
+        const message = fullRefresh
+          ? `✅ Full refresh complete! Loaded ${result.stats?.totalTransactions || 0} transactions.`
+          : `✅ Incremental update complete! Found ${ethereumNew + hyperevmNew} new transactions (${ethereumNew} Ethereum, ${hyperevmNew} HyperEVM).`;
+        
+        setUpdateMessage({ type: 'success', text: message });
+        setTimeout(() => setUpdateMessage(null), 5000);
+        
+        // Update data
+        setData(result.data);
+        setRecentTransactions(result.recentTransactions || []);
+        setLastUpdated(new Date());
+        saveToCache(result.data, result.recentTransactions || []);
+      } else {
+        setUpdateMessage({ type: 'error', text: `❌ ${result.error || 'Update failed'}` });
+        setTimeout(() => setUpdateMessage(null), 5000);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Update failed';
+      setUpdateMessage({ type: 'error', text: `❌ Network error: ${errorMsg}` });
+      setTimeout(() => setUpdateMessage(null), 5000);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleClearCache = () => {
+    try {
+      localStorage.removeItem('gondi-fees-cache');
+      console.log('✅ Cache cleared');
+      setUpdateMessage({ type: 'success', text: '✅ Cache cleared! Refreshing data...' });
+      setTimeout(() => {
+        setUpdateMessage(null);
+        fetchFees(true, true); // Fetch fresh data
+      }, 1000);
+    } catch (err) {
+      console.error('Error clearing cache:', err);
+      setUpdateMessage({ type: 'error', text: '❌ Failed to clear cache' });
+      setTimeout(() => setUpdateMessage(null), 3000);
+    }
   };
 
   const getTotalFees = () => {
-    if (!data) return 0;
+    if (!data) {
+      console.warn('⚠️ getTotalFees: No data available');
+      return 0;
+    }
+    if (!data.currencyBreakdown) {
+      console.warn('⚠️ getTotalFees: No currencyBreakdown in data');
+      return 0;
+    }
+    
     // Sum all 4 currencies: USDC, WETH, HUSDC, WHYPE
     const currencies = ['USDC', 'WETH', 'HUSDC', 'WHYPE'];
-    return currencies.reduce((sum, currency) => {
+    const total = currencies.reduce((sum, currency) => {
       const breakdown = data.currencyBreakdown[currency];
-      return sum + (breakdown?.totalUSD || 0);
+      const value = breakdown?.totalUSD ?? 0;
+      
+      // Detailed logging for Ethereum currencies
+      if (currency === 'USDC' || currency === 'WETH') {
+        console.log(`💰 [getTotalFees] ${currency}:`, {
+          hasBreakdown: !!breakdown,
+          breakdown: breakdown,
+          totalUSD: breakdown?.totalUSD,
+          value: value,
+          type: typeof value
+        });
+      }
+      
+      return sum + value;
     }, 0);
+    
+    console.log(`💰 [getTotalFees] Total: $${total.toFixed(2)}`);
+    console.log('💰 [getTotalFees] Full breakdown:', JSON.stringify(data.currencyBreakdown, null, 2));
+    
+    return total;
   };
 
   const getChartData = () => {
@@ -234,7 +387,19 @@ export default function Home() {
       })
       .sort((a, b) => a.date.localeCompare(b.date));
     
-    console.log(`Chart data: ${chartData.length} entries from ${chartData[0]?.date || 'N/A'} to ${chartData[chartData.length - 1]?.date || 'N/A'}`);
+    // Calculate totals for debugging
+    const chartTotals = chartData.reduce((acc, entry) => {
+      acc.USDC += entry.USDC || 0;
+      acc.WETH += entry.WETH || 0;
+      acc.HUSDC += entry.HUSDC || 0;
+      acc.WHYPE += entry.WHYPE || 0;
+      return acc;
+    }, { USDC: 0, WETH: 0, HUSDC: 0, WHYPE: 0 });
+    
+    console.log(`📊 Chart data: ${chartData.length} entries from ${chartData[0]?.date || 'N/A'} to ${chartData[chartData.length - 1]?.date || 'N/A'}`);
+    console.log(`📊 Chart totals - USDC: $${chartTotals.USDC.toFixed(2)}, WETH: $${chartTotals.WETH.toFixed(2)}, HUSDC: $${chartTotals.HUSDC.toFixed(2)}, WHYPE: $${chartTotals.WHYPE.toFixed(2)}`);
+    console.log(`📊 Ethereum total in chart: $${(chartTotals.USDC + chartTotals.WETH).toFixed(2)}`);
+    console.log(`📊 HyperEVM total in chart: $${(chartTotals.HUSDC + chartTotals.WHYPE).toFixed(2)}`);
     
     return chartData;
   };
@@ -312,7 +477,10 @@ export default function Home() {
             </ol>
           </div>
           <button
-            onClick={handleUpdate}
+            onClick={(e) => {
+              e.preventDefault();
+              handleUpdate(false);
+            }}
             disabled={isUpdating || loading}
             style={{
               padding: '0.5rem 1rem',
@@ -426,35 +594,104 @@ export default function Home() {
             )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-            <button
-              onClick={handleUpdate}
-              disabled={isUpdating || loading}
-              style={{
-                padding: '0.625rem 1.25rem',
-                background: loading ? '#a3a3a3' : '#171717',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                transition: 'background-color 0.15s',
-                whiteSpace: 'nowrap',
-                height: 'fit-content',
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.backgroundColor = '#262626';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.backgroundColor = '#171717';
-                }
-              }}
-            >
-              {loading ? 'Updating...' : 'Update'}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleClearCache}
+                disabled={isUpdating || loading}
+                style={{
+                  padding: '0.625rem 1rem',
+                  background: loading ? '#a3a3a3' : '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  transition: 'background-color 0.15s',
+                  whiteSpace: 'nowrap',
+                  height: 'fit-content',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#dc2626';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#ef4444';
+                  }
+                }}
+                title="Clear cached data and refresh"
+              >
+                Clear Cache
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleUpdate(false);
+                }}
+                disabled={isUpdating || loading}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  background: loading ? '#a3a3a3' : '#171717',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  transition: 'background-color 0.15s',
+                  whiteSpace: 'nowrap',
+                  height: 'fit-content',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#262626';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#171717';
+                  }
+                }}
+                title="Update: Fetch only new transactions since last update (incremental)"
+              >
+                {isUpdating ? 'Updating...' : 'Update'}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleUpdate(true);
+                }}
+                disabled={isUpdating || loading}
+                style={{
+                  padding: '0.625rem 1rem',
+                  background: loading ? '#a3a3a3' : '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  transition: 'background-color 0.15s',
+                  whiteSpace: 'nowrap',
+                  height: 'fit-content',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#d97706';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#f59e0b';
+                  }
+                }}
+                title="Full Refresh: Fetch all transactions from October 22, 2025 (slower)"
+              >
+                Full Refresh
+              </button>
+            </div>
             {lastUpdated && (
               <div style={{ fontSize: '0.75rem', color: '#737373' }}>
                 Last updated: {format(lastUpdated, 'MMM dd, yyyy HH:mm:ss')}
@@ -464,16 +701,72 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Network Summary */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(2, 1fr)', 
+        gap: '1rem', 
+        marginBottom: '2rem' 
+      }}>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Ethereum Network</h3>
+          <div className="value" style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold' }}>
+            ${formatValue((data?.currencyBreakdown.USDC?.totalUSD || 0) + (data?.currencyBreakdown.WETH?.totalUSD || 0))}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            USDC: ${formatValue(data?.currencyBreakdown.USDC?.totalUSD || 0)} • 
+            WETH: ${formatValue(data?.currencyBreakdown.WETH?.totalUSD || 0)}
+          </div>
+        </div>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+          <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>HyperEVM Network</h3>
+          <div className="value" style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold' }}>
+            ${formatValue((data?.currencyBreakdown.HUSDC?.totalUSD || 0) + (data?.currencyBreakdown.WHYPE?.totalUSD || 0))}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            HUSDC: ${formatValue(data?.currencyBreakdown.HUSDC?.totalUSD || 0)} • 
+            WHYPE: ${formatValue(data?.currencyBreakdown.WHYPE?.totalUSD || 0)}
+          </div>
+        </div>
+      </div>
+
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         <div className="stat-card">
           <h3>Total Fees Collected</h3>
           <div className="value">${formatValue(totalFees)}</div>
+          <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.5rem' }}>
+            Ethereum: ${formatValue((data?.currencyBreakdown.USDC?.totalUSD || 0) + (data?.currencyBreakdown.WETH?.totalUSD || 0))} • 
+            HyperEVM: ${formatValue((data?.currencyBreakdown.HUSDC?.totalUSD || 0) + (data?.currencyBreakdown.WHYPE?.totalUSD || 0))}
+          </div>
         </div>
         {['USDC', 'WETH', 'HUSDC', 'WHYPE'].map((currency) => {
-          const breakdown = data?.currencyBreakdown[currency];
+          const breakdown = data?.currencyBreakdown?.[currency];
           // Always show all 4 currencies, even if breakdown is missing (show $0)
-          const totalUSD = breakdown?.totalUSD || 0;
-          const percentage = breakdown?.percentage || 0;
+          const totalUSD = breakdown?.totalUSD ?? 0;
+          const percentage = breakdown?.percentage ?? 0;
+          
+          // Debug logging - log every render
+          console.log(`[RENDER] Currency ${currency}:`, {
+            hasData: !!data,
+            hasCurrencyBreakdown: !!data?.currencyBreakdown,
+            hasBreakdown: !!breakdown,
+            breakdown: breakdown,
+            totalUSD: totalUSD,
+            percentage: percentage,
+            rawValue: breakdown?.totalUSD
+          });
+          
+          // Force re-render check
+          if (!data) {
+            console.warn(`[RENDER] No data available for ${currency}`);
+          }
+          if (!data?.currencyBreakdown) {
+            console.warn(`[RENDER] No currencyBreakdown for ${currency}`);
+          }
+          if (!breakdown) {
+            console.warn(`[RENDER] No breakdown object for ${currency}`);
+          }
+          
           return (
             <div key={currency} className="stat-card">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -485,11 +778,36 @@ export default function Home() {
                   borderRadius: '2px'
                 }}></span>
                 {currency}
+                {(currency === 'USDC' || currency === 'WETH') && (
+                  <span style={{ fontSize: '0.7rem', color: '#737373', marginLeft: '0.25rem' }}>
+                    (Ethereum)
+                  </span>
+                )}
+                {(currency === 'HUSDC' || currency === 'WHYPE') && (
+                  <span style={{ fontSize: '0.7rem', color: '#737373', marginLeft: '0.25rem' }}>
+                    (HyperEVM)
+                  </span>
+                )}
               </h3>
-              <div className="value">${formatValue(totalUSD)}</div>
+              <div className="value" style={{ 
+                color: totalUSD === 0 && breakdown ? '#ef4444' : 'inherit',
+                fontWeight: totalUSD === 0 && breakdown ? 'bold' : 'normal'
+              }}>
+                ${formatValue(totalUSD)}
+              </div>
               {percentage > 0 && (
                 <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem' }}>
                   {percentage.toFixed(1)}%
+                </div>
+              )}
+              {totalUSD === 0 && breakdown && (
+                <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.25rem' }}>
+                  ⚠️ Breakdown exists but totalUSD is 0
+                </div>
+              )}
+              {totalUSD === 0 && !breakdown && (
+                <div style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+                  ⚠️ No breakdown data
                 </div>
               )}
             </div>
@@ -499,7 +817,13 @@ export default function Home() {
 
       {chartData.length > 0 && (
         <div className="chart-container">
-          <h2>Fee Trends</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2>Fee Trends</h2>
+            <div style={{ fontSize: '0.875rem', color: '#737373' }}>
+              Ethereum: ${formatValue((data?.currencyBreakdown.USDC?.totalUSD || 0) + (data?.currencyBreakdown.WETH?.totalUSD || 0))} • 
+              HyperEVM: ${formatValue((data?.currencyBreakdown.HUSDC?.totalUSD || 0) + (data?.currencyBreakdown.WHYPE?.totalUSD || 0))}
+            </div>
+          </div>
           <div className="tabs">
             <button
               className={`tab ${activeTab === 'daily' ? 'active' : ''}`}

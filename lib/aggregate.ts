@@ -102,17 +102,43 @@ export async function aggregateFees(transactions: Transaction[]): Promise<Aggreg
   });
 
   // Log totals for debugging
+  console.log('\n📊 ========== FEE AGGREGATION SUMMARY ==========');
+  console.log('Total transactions processed:', filteredTransactions.length);
   console.log('Currency totals (native):', currencyTotals);
   console.log('Currency totals (USD):', currencyTotalsUSD);
   console.log('Grand total USD:', grandTotalUSD);
-  console.log('Total transactions processed:', filteredTransactions.length);
+  console.log('Expected total: ~$68,000');
+  console.log('Difference from expected:', (grandTotalUSD - 68000).toFixed(2));
   
   // Log breakdown by currency for verification
+  console.log('\n💰 Currency Breakdown:');
   Object.entries(currencyTotals).forEach(([currency, total]) => {
     const usdTotal = currencyTotalsUSD[currency] || 0;
     const price = prices[currency] || 0;
-    console.log(`${currency}: ${total.toFixed(6)} tokens, price: $${price}, USD total: $${usdTotal.toFixed(2)}`);
+    const percentage = grandTotalUSD > 0 ? (usdTotal / grandTotalUSD) * 100 : 0;
+    console.log(`  ${currency}: ${total.toFixed(6)} tokens, price: $${price.toFixed(2)}, USD total: $${usdTotal.toFixed(2)} (${percentage.toFixed(1)}%)`);
   });
+  
+  // Log breakdown by network
+  const ethereumTxs = filteredTransactions.filter(tx => tx.network === 'ethereum');
+  const hyperevmTxs = filteredTransactions.filter(tx => tx.network === 'hyperevm');
+  const ethereumUSD = ethereumTxs.reduce((sum, tx) => {
+    const currency = (tx.tokenSymbol || '').toUpperCase();
+    const value = parseTransactionValue(tx.value, tx.tokenDecimal || 18);
+    const price = prices[currency] || 0;
+    return sum + (value * price);
+  }, 0);
+  const hyperevmUSD = hyperevmTxs.reduce((sum, tx) => {
+    const currency = (tx.tokenSymbol || '').toUpperCase();
+    const value = parseTransactionValue(tx.value, tx.tokenDecimal || 18);
+    const price = prices[currency] || 0;
+    return sum + (value * price);
+  }, 0);
+  
+  console.log('\n🌐 Network Breakdown:');
+  console.log(`  Ethereum: ${ethereumTxs.length} transactions, $${ethereumUSD.toFixed(2)}`);
+  console.log(`  HyperEVM: ${hyperevmTxs.length} transactions, $${hyperevmUSD.toFixed(2)}`);
+  console.log('==========================================\n');
 
   return {
     daily,

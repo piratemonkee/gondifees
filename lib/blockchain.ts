@@ -197,9 +197,13 @@ async function fetchTransactionsPaginated(
   return allResults;
 }
 
-export async function fetchEthereumTransactions(): Promise<Transaction[]> {
+export async function fetchEthereumTransactions(startBlock?: number): Promise<Transaction[]> {
   try {
     const transactions: Transaction[] = [];
+    
+    // Log the contract address being used for Ethereum
+    console.log('🔍 ETHEREUM NETWORK - Using contract address:', ETHEREUM_ADDRESS);
+    console.log('🔍 ETHEREUM NETWORK - Chain ID: 1 (Ethereum Mainnet)');
     
     // Check if API key is available
     if (!ETHERSCAN_API_KEY) {
@@ -211,13 +215,18 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     // Use pagination to handle large number of transactions
     const baseUrl = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=${ETHEREUM_ADDRESS}&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
     
+    console.log('🔗 Ethereum API URL (base):', baseUrl.replace(ETHERSCAN_API_KEY || '', 'API_KEY_HIDDEN'));
+    
     let tokenResults: any[] = [];
     try {
       console.log('Starting Ethereum API fetch with pagination...');
       const startTime = Date.now();
       
       // Fetch with pagination by block ranges
-      tokenResults = await fetchTransactionsPaginated(baseUrl, 0, 99999999, 'ethereum');
+      // If startBlock is provided, only fetch from that block onwards (incremental update)
+      const fetchStartBlock = startBlock !== undefined ? startBlock : 0;
+      console.log(`📊 Fetching Ethereum transactions from block ${fetchStartBlock} onwards`);
+      tokenResults = await fetchTransactionsPaginated(baseUrl, fetchStartBlock, 99999999, 'ethereum');
       
       const duration = Date.now() - startTime;
       console.log(`✅ Ethereum API fetch completed in ${duration}ms, got ${tokenResults.length} total results`);
@@ -236,6 +245,8 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     }
     
     if (tokenResults.length > 0) {
+      console.log(`📊 Processing ${tokenResults.length} raw token transactions from Ethereum API...`);
+      
       const tokenTxs = tokenResults
         .filter(tx => {
           // Only include transactions TO the fee address
@@ -245,6 +256,12 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
           const isUSDC = tokenSymbol === 'USDC';
           const isWETH = tokenSymbol === 'WETH' || tokenSymbol === 'WETHEREUM';
           const isValidToken = isUSDC || isWETH;
+          
+          if (!isToFeeAddress) {
+            console.log(`⚠️ Skipping transaction ${tx.hash}: not TO fee address (to: ${tx.to})`);
+          } else if (!isValidToken) {
+            console.log(`⚠️ Skipping transaction ${tx.hash}: invalid token ${tokenSymbol} (expected USDC or WETH)`);
+          }
           
           return isToFeeAddress && isValidToken && tx.value && BigInt(tx.value) > BigInt(0);
         })
@@ -264,11 +281,12 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
             from: tx.from,
             to: tx.to,
             network: 'ethereum' as const,
+            blockNumber: parseInt(tx.blockNumber),
           };
         });
       
       transactions.push(...tokenTxs);
-      console.log(`Fetched ${tokenTxs.length} USDC/WETH transactions TO fee address (out of ${tokenResults.length} total token transactions)`);
+      console.log(`✅ Fetched ${tokenTxs.length} USDC/WETH transactions TO fee address ${ETHEREUM_ADDRESS} (out of ${tokenResults.length} total token transactions)`);
       
       // Log breakdown by token with amounts
       const tokenBreakdown: { [key: string]: { count: number; totalValue: bigint; decimals: number } } = {};
@@ -281,13 +299,15 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
         tokenBreakdown[symbol].totalValue += BigInt(tx.value);
       });
       
-      console.log('Fee token breakdown:');
+      console.log('💰 Ethereum Fee token breakdown:');
       Object.entries(tokenBreakdown).forEach(([symbol, data]) => {
         const total = Number(data.totalValue) / (10 ** data.decimals);
         console.log(`  ${symbol}: ${data.count} transactions, ${total.toFixed(6)} tokens`);
       });
     } else {
-      console.log('No token transactions found. API response may be empty or error.');
+      console.log('⚠️ No token transactions found. API response may be empty or error.');
+      console.log('⚠️ Verify contract address:', ETHEREUM_ADDRESS);
+      console.log('⚠️ Verify chain ID: 1 (Ethereum Mainnet)');
     }
     
     return transactions;
@@ -304,9 +324,13 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
   }
 }
 
-export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
+export async function fetchHyperEVMTransactions(startBlock?: number): Promise<Transaction[]> {
   try {
     const transactions: Transaction[] = [];
+    
+    // Log the contract address being used for HyperEVM
+    console.log('🔍 HYPEREVM NETWORK - Using contract address:', HYPEREVM_ADDRESS);
+    console.log('🔍 HYPEREVM NETWORK - Chain ID: 999 (HyperEVM)');
     
     // Check if API key is available
     if (!ETHERSCAN_API_KEY) {
@@ -318,13 +342,18 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
     // Use pagination (though HyperEVM has fewer transactions, it's good practice)
     const baseUrl = `https://api.etherscan.io/v2/api?chainid=999&module=account&action=tokentx&address=${HYPEREVM_ADDRESS}&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
     
+    console.log('🔗 HyperEVM API URL (base):', baseUrl.replace(ETHERSCAN_API_KEY || '', 'API_KEY_HIDDEN'));
+    
     let tokenResults: any[] = [];
     try {
       console.log('Starting HyperEVM API fetch with pagination...');
       const startTime = Date.now();
       
       // Fetch with pagination by block ranges
-      tokenResults = await fetchTransactionsPaginated(baseUrl, 0, 99999999, 'hyperevm');
+      // If startBlock is provided, only fetch from that block onwards (incremental update)
+      const fetchStartBlock = startBlock !== undefined ? startBlock : 0;
+      console.log(`📊 Fetching HyperEVM transactions from block ${fetchStartBlock} onwards`);
+      tokenResults = await fetchTransactionsPaginated(baseUrl, fetchStartBlock, 99999999, 'hyperevm');
       
       const duration = Date.now() - startTime;
       console.log(`✅ HyperEVM API fetch completed in ${duration}ms, got ${tokenResults.length} total results`);
@@ -338,6 +367,8 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
     }
     
     if (tokenResults.length > 0) {
+      console.log(`📊 Processing ${tokenResults.length} raw token transactions from HyperEVM API...`);
+      
       const tokenTxs = tokenResults
         .filter(tx => {
           const isToFeeAddress = tx.to && tx.to.toLowerCase() === HYPEREVM_ADDRESS.toLowerCase();
@@ -348,6 +379,12 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
           const isWHYPE = tokenSymbol === 'WHYPE' || tokenSymbol === 'WRHYPER' || 
                          tokenName.includes('WRAP') || tokenName.includes('HYPE');
           const isValidToken = isUSDC || isWHYPE;
+          
+          if (!isToFeeAddress) {
+            console.log(`⚠️ Skipping transaction ${tx.hash}: not TO fee address (to: ${tx.to})`);
+          } else if (!isValidToken) {
+            console.log(`⚠️ Skipping transaction ${tx.hash}: invalid token ${tokenSymbol} (expected USDC or WHYPE)`);
+          }
           
           return isToFeeAddress && isValidToken && tx.value && BigInt(tx.value) > BigInt(0);
         })
@@ -369,11 +406,12 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
             from: tx.from,
             to: tx.to,
             network: 'hyperevm' as const,
+            blockNumber: parseInt(tx.blockNumber),
           };
         });
       
       transactions.push(...tokenTxs);
-      console.log(`Fetched ${tokenTxs.length} relevant token transactions TO fee address from HyperEVM (out of ${tokenResults.length} total token transactions)`);
+      console.log(`✅ Fetched ${tokenTxs.length} relevant token transactions TO fee address ${HYPEREVM_ADDRESS} from HyperEVM (out of ${tokenResults.length} total token transactions)`);
       
       // Log breakdown by token
       const tokenBreakdown: { [key: string]: { count: number; totalValue: bigint } } = {};
@@ -386,14 +424,16 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
         tokenBreakdown[symbol].totalValue += BigInt(tx.value);
       });
       
-      console.log('HyperEVM Token breakdown:');
+      console.log('💰 HyperEVM Token breakdown:');
       Object.entries(tokenBreakdown).forEach(([symbol, data]) => {
         const decimals = tokenTxs.find(tx => tx.tokenSymbol === symbol)?.tokenDecimal || 18;
         const total = Number(data.totalValue) / (10 ** decimals);
         console.log(`  ${symbol}: ${data.count} transactions, ${total.toFixed(6)} tokens`);
       });
     } else {
-      console.log('No token transactions found for HyperEVM. API response may be empty or error.');
+      console.log('⚠️ No token transactions found for HyperEVM. API response may be empty or error.');
+      console.log('⚠️ Verify contract address:', HYPEREVM_ADDRESS);
+      console.log('⚠️ Verify chain ID: 999 (HyperEVM)');
     }
     
     return transactions;

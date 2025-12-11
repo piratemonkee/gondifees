@@ -7,6 +7,7 @@ export interface Transaction {
   from: string;
   to: string;
   network: 'ethereum' | 'hyperevm';
+  blockNumber?: number; // Block number for incremental fetching
 }
 
 export interface FeeData {
