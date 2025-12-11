@@ -61,12 +61,17 @@ export default function Home() {
         setData(result.data);
         setRecentTransactions(result.recentTransactions || []);
         setLastUpdated(new Date());
+        setError(null); // Clear any previous errors
       } else {
-        setError(result.error || 'Failed to fetch data');
+        const errorMsg = result.error || 'Failed to fetch data';
+        const details = result.details || '';
+        const hint = result.hint || '';
+        setError(`${errorMsg}${details ? `: ${details}` : ''}${hint ? ` (${hint})` : ''}`);
       }
     } catch (err) {
-      setError('Failed to fetch fee data');
-      console.error(err);
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch fee data';
+      setError(`Network error: ${errorMsg}`);
+      console.error('Fetch error:', err);
     } finally {
       setLoading(false);
     }

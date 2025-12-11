@@ -84,10 +84,26 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
   try {
     const transactions: Transaction[] = [];
     
+    // Check if API key is available
+    if (!ETHERSCAN_API_KEY) {
+      console.warn('ETHERSCAN_API_KEY not set. API calls may be rate-limited.');
+    }
+    
     // ONLY fetch USDC and WETH token transfers (no native ETH, no DAI, no USDT)
     // Using Etherscan API V2 (V1 deprecated as of Aug 2025)
     const tokenUrl = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=${ETHEREUM_ADDRESS}&startblock=0&endblock=99999999&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
-    const tokenResults = await fetchWithRetry(tokenUrl);
+    
+    let tokenResults: any[] = [];
+    try {
+      tokenResults = await fetchWithRetry(tokenUrl);
+    } catch (fetchError) {
+      const errorMsg = `Failed to fetch Ethereum transactions: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
+      console.error(errorMsg);
+      if (!ETHERSCAN_API_KEY) {
+        throw new Error('ETHERSCAN_API_KEY environment variable is required. Please set it in Vercel environment variables.');
+      }
+      throw new Error(errorMsg);
+    }
     
     if (tokenResults.length > 0) {
       const tokenTxs = tokenResults
@@ -155,10 +171,26 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
   try {
     const transactions: Transaction[] = [];
     
+    // Check if API key is available
+    if (!ETHERSCAN_API_KEY) {
+      console.warn('ETHERSCAN_API_KEY not set. API calls may be rate-limited.');
+    }
+    
     // Fetch ERC-20 token transfers - focus on USDC (HUSDC) and WHYPE
     // Using Etherscan API V2 with chainid=999 for HyperEVM
     const tokenUrl = `https://api.etherscan.io/v2/api?chainid=999&module=account&action=tokentx&address=${HYPEREVM_ADDRESS}&startblock=0&endblock=99999999&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
-    const tokenResults = await fetchWithRetry(tokenUrl);
+    
+    let tokenResults: any[] = [];
+    try {
+      tokenResults = await fetchWithRetry(tokenUrl);
+    } catch (fetchError) {
+      const errorMsg = `Failed to fetch HyperEVM transactions: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
+      console.error(errorMsg);
+      if (!ETHERSCAN_API_KEY) {
+        throw new Error('ETHERSCAN_API_KEY environment variable is required. Please set it in Vercel environment variables.');
+      }
+      throw new Error(errorMsg);
+    }
     
     if (tokenResults.length > 0) {
       const tokenTxs = tokenResults
