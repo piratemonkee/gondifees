@@ -41,7 +41,9 @@ export default function Home() {
   const [data, setData] = useState<AggregatedFees | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<RecentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -99,10 +101,17 @@ export default function Home() {
     }
   };
 
-  const fetchFees = async (forceApi: boolean = false) => {
+  const fetchFees = async (forceApi: boolean = false, isUpdate: boolean = false) => {
     try {
-      setLoading(true);
+      // If it's an update, use isUpdating state, otherwise use loading
+      if (isUpdate) {
+        setIsUpdating(true);
+        setUpdateMessage({ type: 'info', text: 'Fetching latest data from blockchain...' });
+      } else {
+        setLoading(true);
+      }
       setError(null);
+      
       const url = forceApi ? '/api/fees?forceApi=true' : '/api/fees';
       
       const response = await fetch(url);
@@ -125,32 +134,67 @@ export default function Home() {
         
         // Save to cache
         saveToCache(result.data, result.recentTransactions || []);
+        
+        // Show success message if updating
+        if (isUpdate) {
+          const txCount = result.stats?.totalTransactions || 0;
+          setUpdateMessage({ 
+            type: 'success', 
+            text: `✅ Successfully updated! Loaded ${txCount} transactions.` 
+          });
+          // Clear message after 5 seconds
+          setTimeout(() => setUpdateMessage(null), 5000);
+        }
       } else {
         const errorMsg = result.error || 'Failed to fetch data';
         const details = result.details || '';
         const hint = result.hint || '';
-        setError(`${errorMsg}${details ? `: ${details}` : ''}${hint ? ` (${hint})` : ''}`);
+        const fullError = `${errorMsg}${details ? `: ${details}` : ''}${hint ? ` (${hint})` : ''}`;
+        
+        if (isUpdate) {
+          setUpdateMessage({ type: 'error', text: `❌ ${fullError}` });
+          setTimeout(() => setUpdateMessage(null), 8000);
+        } else {
+          setError(fullError);
+        }
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch fee data';
       
-      // If we have cached data, don't show error, just use cache
-      const hasCache = loadCachedData();
-      if (!hasCache) {
-        setError(`Network error: ${errorMsg}`);
+      if (isUpdate) {
+        setUpdateMessage({ type: 'error', text: `❌ Network error: ${errorMsg}` });
+        setTimeout(() => setUpdateMessage(null), 8000);
+        
+        // If we have cached data, keep showing it
+        const hasCache = loadCachedData();
+        if (hasCache) {
+          setUpdateMessage({ type: 'info', text: '⚠️ Using cached data due to network error.' });
+          setTimeout(() => setUpdateMessage(null), 5000);
+        }
       } else {
-        setError(null); // Clear error if we have cache
+        // If we have cached data, don't show error, just use cache
+        const hasCache = loadCachedData();
+        if (!hasCache) {
+          setError(`Network error: ${errorMsg}`);
+        } else {
+          setError(null); // Clear error if we have cache
+        }
       }
       
       console.error('Fetch error:', err);
     } finally {
-      setLoading(false);
+      if (isUpdate) {
+        setIsUpdating(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
   const handleUpdate = async () => {
     // Always fetch from API when Update is clicked
-    await fetchFees(true); // Force API update
+    // Pass isUpdate=true so we don't clear the screen
+    await fetchFees(true, true); // Force API update, isUpdate=true
   };
 
   const getTotalFees = () => {
@@ -195,7 +239,8 @@ export default function Home() {
     return chartData;
   };
 
-  if (loading) {
+  // Only show full loading screen on initial load, not during updates
+  if (loading && !data) {
     return (
       <div className="container">
         <div className="loading">Loading fee data...</div>
@@ -268,31 +313,31 @@ export default function Home() {
           </div>
           <button
             onClick={handleUpdate}
-            disabled={loading}
+            disabled={isUpdating || loading}
             style={{
               padding: '0.5rem 1rem',
-              background: loading ? '#a3a3a3' : '#171717',
+              background: (isUpdating || loading) ? '#a3a3a3' : '#171717',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: (isUpdating || loading) ? 'not-allowed' : 'pointer',
               fontSize: '0.875rem',
               fontWeight: '500',
               marginRight: '0.5rem',
               transition: 'background-color 0.15s',
             }}
             onMouseEnter={(e) => {
-              if (!loading) {
+              if (!isUpdating && !loading) {
                 e.currentTarget.style.backgroundColor = '#262626';
               }
             }}
             onMouseLeave={(e) => {
-              if (!loading) {
+              if (!isUpdating && !loading) {
                 e.currentTarget.style.backgroundColor = '#171717';
               }
             }}
           >
-            {loading ? 'Updating...' : 'Update'}
+            {isUpdating ? 'Updating...' : 'Update'}
           </button>
           <a
             href="https://etherscan.io/myapikey"
@@ -322,6 +367,44 @@ export default function Home() {
 
   return (
     <div className="container">
+      {/* Update Status Notification */}
+      {updateMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: updateMessage.type === 'success' ? '#10b981' : 
+                     updateMessage.type === 'error' ? '#ef4444' : '#3b82f6',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          maxWidth: '400px',
+          fontSize: '0.875rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          animation: 'slideIn 0.3s ease-out',
+        }}>
+          <span>{updateMessage.text}</span>
+          <button
+            onClick={() => setUpdateMessage(null)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: 'white',
+              borderRadius: '4px',
+              padding: '0.25rem 0.5rem',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      
       <div className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', gap: '1rem' }}>
           <div style={{ flex: 1 }}>
