@@ -188,10 +188,13 @@ export async function GET(request: Request) {
         hyperevmTransactions: allTransactions.filter(tx => tx.network === 'hyperevm').length,
       },
       version: '2025-01-11-v2', // Version identifier for debugging
+      commitHash: process.env.VERCEL_GIT_COMMIT_SHA || process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'local',
+      buildId: process.env.VERCEL ? (process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'unknown') : 'local',
       environment: {
         isProduction: process.env.VERCEL === '1',
         nodeEnv: process.env.NODE_ENV,
         hasApiKey: !!process.env.ETHERSCAN_API_KEY,
+        vercelEnv: process.env.VERCEL_ENV || 'local',
       },
     });
   } catch (error) {

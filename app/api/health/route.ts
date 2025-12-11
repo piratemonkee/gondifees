@@ -9,11 +9,15 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     version: '2025-01-11-v2', // Version identifier for debugging
+    commitHash: process.env.VERCEL_GIT_COMMIT_SHA || process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || 'local',
+    buildId: process.env.VERCEL ? (process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'unknown') : 'local',
     environment: {
       hasApiKey,
       isProduction,
       nodeEnv,
-      vercelEnv: process.env.VERCEL_ENV || 'unknown'
+      vercelEnv: process.env.VERCEL_ENV || 'local',
+      vercelUrl: process.env.VERCEL_URL || 'local',
+      gitBranch: process.env.VERCEL_GIT_COMMIT_REF || 'local',
     },
     message: hasApiKey 
       ? 'API key is configured'
