@@ -114,24 +114,64 @@ export async function GET(request: Request) {
       // Use API if not using CSV
       if (!useCsv) {
         const { searchParams } = new URL(request.url);
-        const incremental = searchParams.get('incremental') !== 'false'; // Default to true
+        const incrementalParam = searchParams.get('incremental');
         const fullRefresh = searchParams.get('fullRefresh') === 'true';
+        
+        // Smart default: only use incremental if we have last processed data, otherwise do full fetch
+        // But if incremental is explicitly set to false, respect that
+        const hasLastProcessed = getLastProcessedTransaction('ethereum') || getLastProcessedTransaction('hyperevm');
+        const incremental = fullRefresh 
+          ? false 
+          : (incrementalParam === 'true' || (incrementalParam !== 'false' && hasLastProcessed));
         
         if (fullRefresh) {
           console.log('🔄 Full refresh requested - fetching all transactions from October 22, 2025');
-        } else if (incremental) {
+        } else if (incremental && hasLastProcessed) {
           console.log('🔄 Incremental update - fetching only new transactions since last update');
+        } else {
+          console.log('🔄 Initial load or no last processed data - fetching all transactions (this may take a while)');
         }
         
         try {
           // Get start blocks for incremental fetching
-          const ethereumStartBlock = fullRefresh ? 0 : (incremental ? getStartBlock('ethereum') : 0);
-          const hyperevmStartBlock = fullRefresh ? 0 : (incremental ? getStartBlock('hyperevm') : 0);
+          // If no last processed data and not explicitly incremental, start from 0 (full fetch)
+          const ethereumStartBlock = fullRefresh 
+            ? 0 
+            : (incremental && hasLastProcessed ? getStartBlock('ethereum') : 0);
+          const hyperevmStartBlock = fullRefresh 
+            ? 0 
+            : (incremental && hasLastProcessed ? getStartBlock('hyperevm') : 0);
+          
+          console.log(`📊 Fetch strategy: Ethereum from block ${ethereumStartBlock}, HyperEVM from block ${hyperevmStartBlock}`);
           
           // Fetch both APIs independently so one failure doesn't break the other
+          // Add timeout wrapper to prevent Vercel function timeout
+          const API_TIMEOUT = 50000; // 50 seconds (leave 10s buffer for processing)
+          
+          const fetchWithTimeout = async <T>(
+            promise: Promise<T>,
+            timeoutMs: number,
+            network: string
+          ): Promise<T> => {
+            const timeoutPromise = new Promise<T>((_, reject) => {
+              setTimeout(() => {
+                reject(new Error(`${network} API request timed out after ${timeoutMs}ms`));
+              }, timeoutMs);
+            });
+            return Promise.race([promise, timeoutPromise]);
+          };
+          
           const [ethereumResult, hyperevmResult] = await Promise.allSettled([
-            fetchEthereumTransactions(ethereumStartBlock),
-            fetchHyperEVMTransactions(hyperevmStartBlock),
+            fetchWithTimeout(
+              fetchEthereumTransactions(ethereumStartBlock),
+              API_TIMEOUT,
+              'Ethereum'
+            ),
+            fetchWithTimeout(
+              fetchHyperEVMTransactions(hyperevmStartBlock),
+              API_TIMEOUT,
+              'HyperEVM'
+            ),
           ]);
 
           const ethereumTxs = ethereumResult.status === 'fulfilled' ? ethereumResult.value : [];
@@ -249,6 +289,23 @@ export async function GET(request: Request) {
           
           if (allTransactions.length === 0) {
             const hasApiKey = !!process.env.ETHERSCAN_API_KEY;
+            const ethereumError = ethereumResult.status === 'rejected';
+            const hyperevmError = hyperevmResult.status === 'rejected';
+            const hasTimeout = (ethereumError && ethereumResult.reason?.message?.includes('timeout')) ||
+                              (hyperevmError && hyperevmResult.reason?.message?.includes('timeout'));
+            
+            if (hasTimeout) {
+              const errorMsg = 'Request timed out. The initial data fetch is too large. Please use "Full Refresh" button or try again later.';
+              console.error('❌ Timeout error:', errorMsg);
+              return NextResponse.json({
+                success: false,
+                error: 'Request Timeout',
+                details: errorMsg,
+                hint: 'Try using the "Full Refresh" button, or wait a moment and try again. For first-time setup, the initial fetch may take longer.',
+                timeout: true,
+              }, { status: 504 });
+            }
+            
             const errorMsg = hasApiKey
               ? 'No transactions found from APIs. This could be due to:\n' +
                 '1. API rate limits exceeded (wait a moment and try again)\n' +

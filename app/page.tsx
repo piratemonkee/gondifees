@@ -155,6 +155,8 @@ export default function Home() {
       }
       setError(null);
       
+      // On initial load, don't force incremental (let server decide based on last processed data)
+      // Only use incremental explicitly when user clicks Update button
       const url = forceApi ? '/api/fees?forceApi=true' : '/api/fees';
       
       const response = await fetch(url);
@@ -168,6 +170,21 @@ export default function Home() {
       }
       
       const result = await response.json();
+      
+      // Handle timeout errors
+      if (result.timeout) {
+        const errorMsg = result.details || 'Request timed out. The data fetch is taking too long.';
+        if (isUpdate) {
+          setUpdateMessage({ 
+            type: 'error', 
+            text: `⏱️ ${errorMsg} Try using "Full Refresh" or wait a moment.` 
+          });
+          setTimeout(() => setUpdateMessage(null), 8000);
+        } else {
+          setError(errorMsg);
+        }
+        return;
+      }
       
       if (result.success) {
         console.log('✅ Data received from API:', {
