@@ -40,20 +40,18 @@ interface HyperEVMResponse {
 
 // Etherscan API returns up to 10,000 results per call
 // We need to handle the case where there might be more results
-async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> {
+async function fetchWithRetry(url: string, retries: number = 3, timeoutMs?: number): Promise<any[]> {
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`Fetching from API (attempt ${i + 1}/${retries})...`);
       // Create timeout controller for better compatibility
-      // Vercel Hobby plan has 10s timeout, Pro has 60s
-      // Ethereum has many more transactions, so we need more time
-      // Use 25s for Vercel (safe margin under 30s function limit) or 60s locally
-      const timeoutMs = process.env.VERCEL === '1' ? 25000 : 60000;
+      // Use provided timeout or default: 15s for Vercel, 30s locally
+      const requestTimeout = timeoutMs || (process.env.VERCEL === '1' ? 15000 : 30000);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.warn(`⏱️ Request timeout after ${timeoutMs}ms`);
+        console.warn(`⏱️ Request timeout after ${requestTimeout}ms`);
         controller.abort();
-      }, timeoutMs);
+      }, requestTimeout);
       
       const response = await fetch(url, {
         signal: controller.signal,
@@ -115,6 +113,82 @@ async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> 
   return [];
 }
 
+// Fetch transactions with pagination by block ranges
+// Etherscan API returns max 10,000 results, so we split by block ranges
+async function fetchTransactionsPaginated(
+  baseUrl: string,
+  startBlock: number = 0,
+  endBlock: number = 99999999,
+  network: 'ethereum' | 'hyperevm' = 'ethereum'
+): Promise<any[]> {
+  const allResults: any[] = [];
+  const BLOCK_RANGE = 500000; // Fetch 500k blocks at a time to stay under 10k result limit
+  const MAX_RESULTS = 10000;
+  
+  console.log(`📄 Starting paginated fetch for ${network}: blocks ${startBlock} to ${endBlock}`);
+  
+  let currentStart = startBlock;
+  let attempt = 0;
+  const maxAttempts = Math.ceil((endBlock - startBlock) / BLOCK_RANGE) + 10; // Safety limit
+  
+  while (currentStart <= endBlock && attempt < maxAttempts) {
+    attempt++;
+    const currentEnd = Math.min(currentStart + BLOCK_RANGE - 1, endBlock);
+    
+    const paginatedUrl = `${baseUrl}&startblock=${currentStart}&endblock=${currentEnd}`;
+    console.log(`📄 Fetching ${network} blocks ${currentStart} to ${currentEnd} (attempt ${attempt})...`);
+    
+    try {
+      const results = await fetchWithRetry(paginatedUrl, 2, 10000); // 10s timeout per request
+      
+      if (results.length > 0) {
+        allResults.push(...results);
+        console.log(`✅ Got ${results.length} results from blocks ${currentStart}-${currentEnd} (total: ${allResults.length})`);
+      }
+      
+      // If we got less than MAX_RESULTS, we've likely reached the end
+      // But continue to be safe in case transactions are sparse
+      if (results.length < MAX_RESULTS) {
+        // Check if we got exactly 0, might be end of range
+        if (results.length === 0) {
+          // Try next range, but if we've fetched some data, we might be done
+          if (allResults.length > 0) {
+            console.log(`📄 No more results in range ${currentStart}-${currentEnd}, continuing...`);
+          }
+        } else {
+          console.log(`📄 Got ${results.length} results (less than ${MAX_RESULTS}), may have reached end of data`);
+        }
+      } else {
+        console.log(`⚠️ Got exactly ${MAX_RESULTS} results - might be missing some, but continuing...`);
+      }
+      
+      // Move to next block range
+      currentStart = currentEnd + 1;
+      
+      // Small delay to avoid rate limiting
+      if (currentStart <= endBlock) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Error fetching blocks ${currentStart}-${currentEnd}:`, errorMsg);
+      
+      // If we have some results, continue with next range
+      // Otherwise, this might be a critical error
+      if (allResults.length === 0 && attempt === 1) {
+        throw error; // First attempt failed, throw error
+      }
+      
+      // Skip this range and continue
+      console.log(`⚠️ Skipping block range ${currentStart}-${currentEnd} due to error`);
+      currentStart = currentEnd + 1;
+    }
+  }
+  
+  console.log(`✅ Paginated fetch complete for ${network}: ${allResults.length} total results`);
+  return allResults;
+}
+
 export async function fetchEthereumTransactions(): Promise<Transaction[]> {
   try {
     const transactions: Transaction[] = [];
@@ -126,15 +200,19 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     
     // ONLY fetch USDC and WETH token transfers (no native ETH, no DAI, no USDT)
     // Using Etherscan API V2 (V1 deprecated as of Aug 2025)
-    const tokenUrl = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=${ETHEREUM_ADDRESS}&startblock=0&endblock=99999999&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
+    // Use pagination to handle large number of transactions
+    const baseUrl = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=${ETHEREUM_ADDRESS}&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
     
     let tokenResults: any[] = [];
     try {
-      console.log('Starting Ethereum API fetch...');
+      console.log('Starting Ethereum API fetch with pagination...');
       const startTime = Date.now();
-      tokenResults = await fetchWithRetry(tokenUrl);
+      
+      // Fetch with pagination by block ranges
+      tokenResults = await fetchTransactionsPaginated(baseUrl, 0, 99999999, 'ethereum');
+      
       const duration = Date.now() - startTime;
-      console.log(`✅ Ethereum API fetch completed in ${duration}ms, got ${tokenResults.length} results`);
+      console.log(`✅ Ethereum API fetch completed in ${duration}ms, got ${tokenResults.length} total results`);
     } catch (fetchError) {
       const errorMsg = `Failed to fetch Ethereum transactions: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
       console.error('❌ Ethereum fetch error:', errorMsg);
@@ -229,11 +307,19 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
     
     // Fetch ERC-20 token transfers - focus on USDC (HUSDC) and WHYPE
     // Using Etherscan API V2 with chainid=999 for HyperEVM
-    const tokenUrl = `https://api.etherscan.io/v2/api?chainid=999&module=account&action=tokentx&address=${HYPEREVM_ADDRESS}&startblock=0&endblock=99999999&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
+    // Use pagination (though HyperEVM has fewer transactions, it's good practice)
+    const baseUrl = `https://api.etherscan.io/v2/api?chainid=999&module=account&action=tokentx&address=${HYPEREVM_ADDRESS}&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
     
     let tokenResults: any[] = [];
     try {
-      tokenResults = await fetchWithRetry(tokenUrl);
+      console.log('Starting HyperEVM API fetch with pagination...');
+      const startTime = Date.now();
+      
+      // Fetch with pagination by block ranges
+      tokenResults = await fetchTransactionsPaginated(baseUrl, 0, 99999999, 'hyperevm');
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ HyperEVM API fetch completed in ${duration}ms, got ${tokenResults.length} total results`);
     } catch (fetchError) {
       const errorMsg = `Failed to fetch HyperEVM transactions: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
       console.error(errorMsg);
