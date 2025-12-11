@@ -187,6 +187,12 @@ export async function GET(request: Request) {
         ethereumTransactions: allTransactions.filter(tx => tx.network === 'ethereum').length,
         hyperevmTransactions: allTransactions.filter(tx => tx.network === 'hyperevm').length,
       },
+      version: '2025-01-11-v2', // Version identifier for debugging
+      environment: {
+        isProduction: process.env.VERCEL === '1',
+        nodeEnv: process.env.NODE_ENV,
+        hasApiKey: !!process.env.ETHERSCAN_API_KEY,
+      },
     });
   } catch (error) {
     console.error('Error fetching fees:', error);

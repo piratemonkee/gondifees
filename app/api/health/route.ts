@@ -8,6 +8,7 @@ export async function GET() {
   
   return NextResponse.json({
     status: 'ok',
+    version: '2025-01-11-v2', // Version identifier for debugging
     environment: {
       hasApiKey,
       isProduction,
@@ -16,6 +17,7 @@ export async function GET() {
     },
     message: hasApiKey 
       ? 'API key is configured'
-      : '⚠️ ETHERSCAN_API_KEY is not set. Please add it in Vercel environment variables.'
+      : '⚠️ ETHERSCAN_API_KEY is not set. Please add it in Vercel environment variables.',
+    timestamp: new Date().toISOString()
   });
 }
