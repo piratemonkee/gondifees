@@ -95,7 +95,7 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
           const isWETH = tokenSymbol === 'WETH' || tokenSymbol === 'WETHEREUM';
           const isValidToken = isUSDC || isWETH;
           
-          return isToFeeAddress && isValidToken && tx.value && BigInt(tx.value) > 0n;
+          return isToFeeAddress && isValidToken && tx.value && BigInt(tx.value) > BigInt(0);
         })
         .map(tx => {
           // Normalize WETH symbol
@@ -124,7 +124,7 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
       tokenTxs.forEach(tx => {
         const symbol = tx.tokenSymbol || 'UNKNOWN';
         if (!tokenBreakdown[symbol]) {
-          tokenBreakdown[symbol] = { count: 0, totalValue: 0n, decimals: tx.tokenDecimal || 18 };
+          tokenBreakdown[symbol] = { count: 0, totalValue: BigInt(0), decimals: tx.tokenDecimal || 18 };
         }
         tokenBreakdown[symbol].count++;
         tokenBreakdown[symbol].totalValue += BigInt(tx.value);
@@ -166,7 +166,7 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
                          tokenName.includes('WRAP') || tokenName.includes('HYPE');
           const isValidToken = isUSDC || isWHYPE;
           
-          return isToFeeAddress && isValidToken && tx.value && BigInt(tx.value) > 0n;
+          return isToFeeAddress && isValidToken && tx.value && BigInt(tx.value) > BigInt(0);
         })
         .map(tx => {
           // Tag USDC as HUSDC, keep WHYPE as WHYPE
@@ -197,7 +197,7 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
       tokenTxs.forEach(tx => {
         const symbol = tx.tokenSymbol || 'UNKNOWN';
         if (!tokenBreakdown[symbol]) {
-          tokenBreakdown[symbol] = { count: 0, totalValue: 0n };
+          tokenBreakdown[symbol] = { count: 0, totalValue: BigInt(0) };
         }
         tokenBreakdown[symbol].count++;
         tokenBreakdown[symbol].totalValue += BigInt(tx.value);
