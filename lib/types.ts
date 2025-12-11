@@ -1,3 +1,5 @@
+export type FeeType = 'loan' | 'sale' | 'unknown';
+
 export interface Transaction {
   hash: string;
   timestamp: number;
@@ -7,6 +9,7 @@ export interface Transaction {
   from: string;
   to: string;
   network: 'ethereum' | 'hyperevm';
+  feeType?: FeeType;
 }
 
 export interface FeeData {
@@ -21,5 +24,9 @@ export interface AggregatedFees {
   weekly: { [week: string]: { total: number; totalUSD: number; currencies: { [currency: string]: number }; currenciesUSD: { [currency: string]: number } } };
   monthly: { [month: string]: { total: number; totalUSD: number; currencies: { [currency: string]: number }; currenciesUSD: { [currency: string]: number } } };
   currencyBreakdown: { [currency: string]: { total: number; totalUSD: number; percentage: number } };
+  feeTypeBreakdown?: {
+    loan: { totalUSD: number; percentage: number };
+    sale: { totalUSD: number; percentage: number };
+  };
 }
 

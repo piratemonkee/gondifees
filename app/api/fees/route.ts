@@ -103,9 +103,36 @@ export async function GET(request: Request) {
     });
     const prices = await getMultipleTokenPrices(Array.from(currencies));
 
+    // Classify fees for recent transactions (last 50 unique hashes)
+    const { classifyFeeType, fetchTransactionInputData } = await import('@/lib/fee-classifier');
+    const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+    
+    const sortedTxs = [...allTransactions].sort((a, b) => b.timestamp - a.timestamp);
+    const uniqueHashes = Array.from(new Set(sortedTxs.map(tx => tx.hash))).slice(0, 50);
+    const feeTypeMap = new Map<string, string>();
+    
+    // Classify fees for unique transaction hashes
+    for (const hash of uniqueHashes) {
+      try {
+        const chainId = sortedTxs.find(tx => tx.hash === hash)?.network === 'ethereum' ? 1 : 999;
+        const inputData = await fetchTransactionInputData(hash, chainId, ETHERSCAN_API_KEY);
+        const feeType = classifyFeeType(inputData);
+        feeTypeMap.set(hash, feeType);
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        feeTypeMap.set(hash, 'unknown');
+      }
+    }
+    
+    // Apply fee types to all transactions
+    allTransactions = allTransactions.map(tx => ({
+      ...tx,
+      feeType: feeTypeMap.get(tx.hash) || 'unknown',
+    }));
+
     // Get last 20 transactions sorted by timestamp (most recent first)
-    const recentTransactions = [...allTransactions]
-      .sort((a, b) => b.timestamp - a.timestamp)
+    const recentTransactions = sortedTxs
       .slice(0, 20)
       .map(tx => {
         const currency = (tx.tokenSymbol || '').toUpperCase();
@@ -123,6 +150,7 @@ export async function GET(request: Request) {
           to: tx.to,
           network: tx.network,
           usdValue: usdValue,
+          feeType: feeTypeMap.get(tx.hash) || 'unknown',
         };
       });
 

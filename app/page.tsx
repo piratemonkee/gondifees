@@ -342,6 +342,31 @@ export default function Home() {
         })}
       </div>
 
+      {data?.feeTypeBreakdown && (
+        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginTop: '2rem' }}>
+          <div className="stat-card">
+            <h3>Loan Fees</h3>
+            <div className="value">${formatValue(data.feeTypeBreakdown.loan.totalUSD)}</div>
+            <div style={{ fontSize: '0.875rem', color: '#737373', marginTop: '0.5rem' }}>
+              {data.feeTypeBreakdown.loan.percentage.toFixed(1)}% of total
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#a3a3a3', marginTop: '0.25rem' }}>
+              Accrued interest and origination fees
+            </div>
+          </div>
+          <div className="stat-card">
+            <h3>Sale Fees</h3>
+            <div className="value">${formatValue(data.feeTypeBreakdown.sale.totalUSD)}</div>
+            <div style={{ fontSize: '0.875rem', color: '#737373', marginTop: '0.5rem' }}>
+              {data.feeTypeBreakdown.sale.percentage.toFixed(1)}% of total
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#a3a3a3', marginTop: '0.25rem' }}>
+              Fees from NFT sales
+            </div>
+          </div>
+        </div>
+      )}
+
       {chartData.length > 0 && (
         <div className="chart-container">
           <h2>Fee Trends</h2>
