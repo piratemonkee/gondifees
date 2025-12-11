@@ -64,6 +64,10 @@ async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> 
           console.log('Got results despite deprecation warning');
           return data.result;
         }
+        // Check if result is a string (deprecation message)
+        if (typeof data.result === 'string' && data.result.includes('deprecated')) {
+          console.error('API endpoint is deprecated. Please update to V2 API.');
+        }
         return [];
       }
     } catch (error) {
@@ -81,7 +85,8 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     const transactions: Transaction[] = [];
     
     // ONLY fetch USDC and WETH token transfers (no native ETH, no DAI, no USDT)
-    const tokenUrl = `https://api.etherscan.io/api?module=account&action=tokentx&address=${ETHEREUM_ADDRESS}&startblock=0&endblock=99999999&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
+    // Using Etherscan API V2 (V1 deprecated as of Aug 2025)
+    const tokenUrl = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=${ETHEREUM_ADDRESS}&startblock=0&endblock=99999999&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
     const tokenResults = await fetchWithRetry(tokenUrl);
     
     if (tokenResults.length > 0) {
@@ -151,7 +156,8 @@ export async function fetchHyperEVMTransactions(): Promise<Transaction[]> {
     const transactions: Transaction[] = [];
     
     // Fetch ERC-20 token transfers - focus on USDC (HUSDC) and WHYPE
-    const tokenUrl = `https://api.hyperevmscan.io/api?module=account&action=tokentx&address=${HYPEREVM_ADDRESS}&startblock=0&endblock=99999999&sort=asc`;
+    // Using Etherscan API V2 with chainid=999 for HyperEVM
+    const tokenUrl = `https://api.etherscan.io/v2/api?chainid=999&module=account&action=tokentx&address=${HYPEREVM_ADDRESS}&startblock=0&endblock=99999999&sort=asc${ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : ''}`;
     const tokenResults = await fetchWithRetry(tokenUrl);
     
     if (tokenResults.length > 0) {

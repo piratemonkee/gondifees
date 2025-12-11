@@ -34,6 +34,7 @@ interface RecentTransaction {
   from: string;
   to: string;
   network: 'ethereum' | 'hyperevm';
+  usdValue?: number;
 }
 
 export default function Home() {
@@ -471,7 +472,7 @@ export default function Home() {
           }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr',
               gap: '1rem',
               padding: '1rem',
               background: '#fafafa',
@@ -483,6 +484,7 @@ export default function Home() {
               <div>Date</div>
               <div>Currency</div>
               <div>Amount</div>
+              <div>USD Amount</div>
               <div>Network</div>
               <div>Hash</div>
             </div>
@@ -493,12 +495,15 @@ export default function Home() {
                 ? `https://etherscan.io/tx/${tx.hash}`
                 : `https://hyperevmscan.io/tx/${tx.hash}`;
               
+              // Use unique key: hash + from + value to handle multiple transfers in same tx
+              const uniqueKey = `${tx.hash}-${tx.from}-${tx.value}`;
+              
               return (
                 <div
-                  key={tx.hash}
+                  key={uniqueKey}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr',
                     gap: '1rem',
                     padding: '1rem',
                     borderBottom: index < recentTransactions.length - 1 ? '1px solid #f0f0f0' : 'none',
@@ -518,6 +523,9 @@ export default function Home() {
                     {tx.tokenSymbol || 'N/A'}
                   </div>
                   <div>{value.toFixed(6)}</div>
+                  <div style={{ fontWeight: 500, color: '#171717' }}>
+                    ${tx.usdValue !== undefined ? tx.usdValue.toFixed(2) : '0.00'}
+                  </div>
                   <div style={{ textTransform: 'capitalize' }}>{tx.network}</div>
                   <div>
                     <a

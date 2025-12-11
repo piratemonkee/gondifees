@@ -44,9 +44,17 @@ export async function aggregateFees(transactions: Transaction[]): Promise<Aggreg
     const weekStr = format(startOfWeek(date), 'yyyy-MM-dd');
     const monthStr = format(startOfMonth(date), 'yyyy-MM');
     
-    const currency = tx.tokenSymbol || 'ETH';
+    // Normalize currency to uppercase to match prices object keys
+    const currency = (tx.tokenSymbol || '').toUpperCase();
+    if (!currency || !['USDC', 'WETH', 'HUSDC', 'WHYPE'].includes(currency)) {
+      console.warn(`Skipping transaction with invalid currency: ${tx.tokenSymbol}`);
+      return;
+    }
     const value = parseTransactionValue(tx.value, tx.tokenDecimal || 18);
     const price = prices[currency] || 0;
+    if (price === 0) {
+      console.warn(`Price not found for currency: ${currency}`);
+    }
     const valueUSD = value * price;
 
     // Daily aggregation
@@ -94,9 +102,17 @@ export async function aggregateFees(transactions: Transaction[]): Promise<Aggreg
   });
 
   // Log totals for debugging
+  console.log('Currency totals (native):', currencyTotals);
   console.log('Currency totals (USD):', currencyTotalsUSD);
   console.log('Grand total USD:', grandTotalUSD);
   console.log('Total transactions processed:', filteredTransactions.length);
+  
+  // Log breakdown by currency for verification
+  Object.entries(currencyTotals).forEach(([currency, total]) => {
+    const usdTotal = currencyTotalsUSD[currency] || 0;
+    const price = prices[currency] || 0;
+    console.log(`${currency}: ${total.toFixed(6)} tokens, price: $${price}, USD total: $${usdTotal.toFixed(2)}`);
+  });
 
   return {
     daily,

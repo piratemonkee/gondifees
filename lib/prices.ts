@@ -71,10 +71,11 @@ export async function getMultipleTokenPrices(
 ): Promise<{ [token: string]: number }> {
   const prices: { [token: string]: number } = {};
   
-  // Fetch all prices in parallel
+  // Fetch all prices in parallel, normalize keys to uppercase
   await Promise.all(
     tokens.map(async (token) => {
-      prices[token] = await getTokenPriceUSD(token);
+      const normalizedToken = token.toUpperCase();
+      prices[normalizedToken] = await getTokenPriceUSD(token);
     })
   );
   

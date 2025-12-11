@@ -23,23 +23,25 @@ export async function GET(request: Request) {
       allTransactions = generateDemoData();
       isDemo = true;
     } else if (forceApi) {
-      // Force API fetching (for Update button)
-      console.log('Force API mode: Fetching transactions from Ethereum and HyperEVM APIs...');
+      // Force API fetching (for Update button) - fetch from blockchain APIs
+      console.log('Update mode: Fetching transactions from Ethereum and HyperEVM APIs...');
       
       const [ethereumTxs, hyperevmTxs] = await Promise.all([
         fetchEthereumTransactions(),
         fetchHyperEVMTransactions(),
       ]);
 
-      console.log(`Ethereum transactions: ${ethereumTxs.length}`);
-      console.log(`HyperEVM transactions: ${hyperevmTxs.length}`);
+      console.log(`Ethereum transactions from API: ${ethereumTxs.length}`);
+      console.log(`HyperEVM transactions from API: ${hyperevmTxs.length}`);
 
       allTransactions = [...ethereumTxs, ...hyperevmTxs];
       
       if (allTransactions.length === 0) {
-        console.log('No real data found from APIs, using demo data...');
-        allTransactions = generateDemoData();
-        isDemo = true;
+        console.log('No transactions found from APIs. This could be due to:');
+        console.log('1. API rate limiting');
+        console.log('2. Network issues');
+        console.log('3. No transactions matching the criteria');
+        throw new Error('No data available from APIs');
       }
     } else {
       // Try to read from CSV files first (for local development)
@@ -92,20 +94,39 @@ export async function GET(request: Request) {
     // Aggregate fees (now async and includes USD conversion)
     const aggregated = await aggregateFees(allTransactions);
 
+    // Get prices for USD conversion
+    const { getMultipleTokenPrices } = await import('@/lib/prices');
+    const { parseTransactionValue } = await import('@/lib/blockchain');
+    const currencies = new Set<string>();
+    allTransactions.forEach(tx => {
+      if (tx.tokenSymbol) {
+        currencies.add(tx.tokenSymbol.toUpperCase());
+      }
+    });
+    const prices = await getMultipleTokenPrices(Array.from(currencies));
+
     // Get last 20 transactions sorted by timestamp (most recent first)
     const recentTransactions = [...allTransactions]
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 20)
-      .map(tx => ({
-        hash: tx.hash,
-        timestamp: tx.timestamp,
-        tokenSymbol: tx.tokenSymbol,
-        value: tx.value,
-        tokenDecimal: tx.tokenDecimal || 18,
-        from: tx.from,
-        to: tx.to,
-        network: tx.network,
-      }));
+      .map(tx => {
+        const currency = (tx.tokenSymbol || '').toUpperCase();
+        const value = parseTransactionValue(tx.value, tx.tokenDecimal || 18);
+        const price = prices[currency] || 0;
+        const usdValue = value * price;
+        
+        return {
+          hash: tx.hash,
+          timestamp: tx.timestamp,
+          tokenSymbol: tx.tokenSymbol,
+          value: tx.value,
+          tokenDecimal: tx.tokenDecimal || 18,
+          from: tx.from,
+          to: tx.to,
+          network: tx.network,
+          usdValue: usdValue,
+        };
+      });
 
     return NextResponse.json({
       success: true,
