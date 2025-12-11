@@ -19,18 +19,24 @@ export function generateDemoData(): Transaction[] {
     
     for (let j = 0; j < txCount; j++) {
       const timestamp = date.getTime() + (j * 3600000); // Spread throughout the day
-      const currencies = ['ETH', 'USDC', 'USDT', 'DAI', 'WETH'];
+      const isEthereum = i % 2 === 0;
+      // Only use actual currencies: USDC/WETH for Ethereum, HUSDC/WHYPE for HyperEVM
+      const currencies = isEthereum ? ['USDC', 'WETH'] : ['HUSDC', 'WHYPE'];
       const currency = currencies[Math.floor(Math.random() * currencies.length)];
-      const decimals = currency === 'ETH' || currency === 'WETH' ? 18 : 6;
+      const decimals = currency === 'WETH' || currency === 'WHYPE' ? 18 : 6;
       
       // Generate realistic fee amounts
       let value: bigint;
-      if (currency === 'ETH' || currency === 'WETH') {
-        // ETH fees: 0.001 to 0.1 ETH
+      if (currency === 'WETH') {
+        // WETH fees: 0.001 to 0.1 WETH
         const ethAmount = Math.random() * 0.099 + 0.001;
         value = BigInt(Math.floor(ethAmount * 10 ** 18));
+      } else if (currency === 'WHYPE') {
+        // WHYPE fees: 0.1 to 10 WHYPE
+        const whypeAmount = Math.random() * 9.9 + 0.1;
+        value = BigInt(Math.floor(whypeAmount * 10 ** 18));
       } else {
-        // Stablecoin fees: 10 to 1000 tokens
+        // USDC/HUSDC fees: 10 to 1000 tokens
         const tokenAmount = Math.random() * 990 + 10;
         value = BigInt(Math.floor(tokenAmount * 10 ** decimals));
       }
@@ -42,8 +48,8 @@ export function generateDemoData(): Transaction[] {
         tokenSymbol: currency,
         tokenDecimal: decimals,
         from: `0x${Math.random().toString(16).substring(2, 42)}`,
-        to: i % 2 === 0 ? '0x4169447a424ec645f8a24dccfd8328f714dd5562' : '0xbc0b9c63dc0581278d4b554af56858298bf2a9ec',
-        network: i % 2 === 0 ? 'ethereum' : 'hyperevm',
+        to: isEthereum ? '0x4169447a424ec645f8a24dccfd8328f714dd5562' : '0xbc0b9c63dc0581278d4b554af56858298bf2a9ec',
+        network: isEthereum ? 'ethereum' : 'hyperevm',
       });
     }
   }

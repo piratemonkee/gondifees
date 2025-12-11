@@ -42,6 +42,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchFees();
@@ -58,6 +59,7 @@ export default function Home() {
       if (result.success) {
         setData(result.data);
         setRecentTransactions(result.recentTransactions || []);
+        setLastUpdated(new Date());
       } else {
         setError(result.error || 'Failed to fetch data');
       }
@@ -75,7 +77,12 @@ export default function Home() {
 
   const getTotalFees = () => {
     if (!data) return 0;
-    return Object.values(data.currencyBreakdown).reduce((sum, curr: { totalUSD: number }) => sum + (curr.totalUSD || 0), 0);
+    // Sum all 4 currencies: USDC, WETH, HUSDC, WHYPE
+    const currencies = ['USDC', 'WETH', 'HUSDC', 'WHYPE'];
+    return currencies.reduce((sum, currency) => {
+      const breakdown = data.currencyBreakdown[currency];
+      return sum + (breakdown?.totalUSD || 0);
+    }, 0);
   };
 
   const getChartData = () => {
@@ -257,35 +264,42 @@ export default function Home() {
               </div>
             )}
           </div>
-          <button
-            onClick={handleUpdate}
-            disabled={loading}
-            style={{
-              padding: '0.625rem 1.25rem',
-              background: loading ? '#a3a3a3' : '#171717',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              transition: 'background-color 0.15s',
-              whiteSpace: 'nowrap',
-              height: 'fit-content',
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.backgroundColor = '#262626';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) {
-                e.currentTarget.style.backgroundColor = '#171717';
-              }
-            }}
-          >
-            {loading ? 'Updating...' : 'Update'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+            <button
+              onClick={handleUpdate}
+              disabled={loading}
+              style={{
+                padding: '0.625rem 1.25rem',
+                background: loading ? '#a3a3a3' : '#171717',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                transition: 'background-color 0.15s',
+                whiteSpace: 'nowrap',
+                height: 'fit-content',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = '#262626';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.backgroundColor = '#171717';
+                }
+              }}
+            >
+              {loading ? 'Updating...' : 'Update'}
+            </button>
+            {lastUpdated && (
+              <div style={{ fontSize: '0.75rem', color: '#737373' }}>
+                Last updated: {format(lastUpdated, 'MMM dd, yyyy HH:mm:ss')}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -296,7 +310,9 @@ export default function Home() {
         </div>
         {['USDC', 'WETH', 'HUSDC', 'WHYPE'].map((currency) => {
           const breakdown = data?.currencyBreakdown[currency];
-          if (!breakdown) return null;
+          // Always show all 4 currencies, even if breakdown is missing (show $0)
+          const totalUSD = breakdown?.totalUSD || 0;
+          const percentage = breakdown?.percentage || 0;
           return (
             <div key={currency} className="stat-card">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -309,10 +325,12 @@ export default function Home() {
                 }}></span>
                 {currency}
               </h3>
-              <div className="value">${formatValue(breakdown.totalUSD)}</div>
-              <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem' }}>
-                {breakdown.percentage.toFixed(1)}%
-              </div>
+              <div className="value">${formatValue(totalUSD)}</div>
+              {percentage > 0 && (
+                <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem' }}>
+                  {percentage.toFixed(1)}%
+                </div>
+              )}
             </div>
           );
         })}
