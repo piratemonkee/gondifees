@@ -122,14 +122,18 @@ async function fetchTransactionsPaginated(
   network: 'ethereum' | 'hyperevm' = 'ethereum'
 ): Promise<any[]> {
   const allResults: any[] = [];
-  const BLOCK_RANGE = 500000; // Fetch 500k blocks at a time to stay under 10k result limit
+  // Use smaller block ranges for Ethereum (more transactions) to avoid timeouts
+  // HyperEVM can use larger ranges since it has fewer transactions
+  const BLOCK_RANGE = network === 'ethereum' ? 100000 : 500000; // 100k for Ethereum, 500k for HyperEVM
   const MAX_RESULTS = 10000;
+  const MAX_EMPTY_RANGES = network === 'ethereum' ? 50 : 10; // Allow more empty ranges for Ethereum
   
-  console.log(`📄 Starting paginated fetch for ${network}: blocks ${startBlock} to ${endBlock}`);
+  console.log(`📄 Starting paginated fetch for ${network}: blocks ${startBlock} to ${endBlock} (range: ${BLOCK_RANGE})`);
   
   let currentStart = startBlock;
   let attempt = 0;
-  const maxAttempts = Math.ceil((endBlock - startBlock) / BLOCK_RANGE) + 10; // Safety limit
+  let consecutiveEmptyRanges = 0;
+  const maxAttempts = Math.ceil((endBlock - startBlock) / BLOCK_RANGE) + 100; // Safety limit
   
   while (currentStart <= endBlock && attempt < maxAttempts) {
     attempt++;
@@ -143,27 +147,31 @@ async function fetchTransactionsPaginated(
       
       if (results.length > 0) {
         allResults.push(...results);
+        consecutiveEmptyRanges = 0; // Reset counter when we get results
         console.log(`✅ Got ${results.length} results from blocks ${currentStart}-${currentEnd} (total: ${allResults.length})`);
-      }
-      
-      // If we got less than MAX_RESULTS, we've likely reached the end
-      // But continue to be safe in case transactions are sparse
-      if (results.length < MAX_RESULTS) {
-        // Check if we got exactly 0, might be end of range
-        if (results.length === 0) {
-          // Try next range, but if we've fetched some data, we might be done
-          if (allResults.length > 0) {
-            console.log(`📄 No more results in range ${currentStart}-${currentEnd}, continuing...`);
-          }
-        } else {
-          console.log(`📄 Got ${results.length} results (less than ${MAX_RESULTS}), may have reached end of data`);
-        }
       } else {
-        console.log(`⚠️ Got exactly ${MAX_RESULTS} results - might be missing some, but continuing...`);
+        consecutiveEmptyRanges++;
+        console.log(`📄 No results in blocks ${currentStart}-${currentEnd} (${consecutiveEmptyRanges} empty ranges in a row)`);
       }
       
-      // Move to next block range
-      currentStart = currentEnd + 1;
+      // If we got exactly MAX_RESULTS, we might be missing some, so continue
+      if (results.length === MAX_RESULTS) {
+        console.log(`⚠️ Got exactly ${MAX_RESULTS} results - might be missing some, continuing...`);
+        currentStart = currentEnd + 1;
+      } else if (results.length > 0 && results.length < MAX_RESULTS) {
+        // Got some results but less than max - continue to check next range
+        console.log(`📄 Got ${results.length} results (less than ${MAX_RESULTS}), continuing...`);
+        currentStart = currentEnd + 1;
+      } else {
+        // Got 0 results
+        // If we have results and hit many empty ranges, we're probably done
+        if (allResults.length > 0 && consecutiveEmptyRanges >= MAX_EMPTY_RANGES) {
+          console.log(`📄 Hit ${consecutiveEmptyRanges} consecutive empty ranges with ${allResults.length} results. Stopping.`);
+          break;
+        }
+        // Otherwise continue searching
+        currentStart = currentEnd + 1;
+      }
       
       // Small delay to avoid rate limiting
       if (currentStart <= endBlock) {
