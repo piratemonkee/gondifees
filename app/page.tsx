@@ -428,7 +428,7 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
             <button
               onClick={handleUpdate}
-              disabled={loading}
+              disabled={isUpdating || loading}
               style={{
                 padding: '0.625rem 1.25rem',
                 background: loading ? '#a3a3a3' : '#171717',
