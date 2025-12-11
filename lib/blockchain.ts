@@ -45,8 +45,10 @@ async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> 
     try {
       console.log(`Fetching from API (attempt ${i + 1}/${retries})...`);
       // Create timeout controller for better compatibility
-      // Vercel Hobby plan has 10s timeout, Pro has 60s - use 8s to be safe
-      const timeoutMs = process.env.VERCEL === '1' ? 8000 : 30000;
+      // Vercel Hobby plan has 10s timeout, Pro has 60s
+      // Ethereum has many more transactions, so we need more time
+      // Use 25s for Vercel (safe margin under 30s function limit) or 60s locally
+      const timeoutMs = process.env.VERCEL === '1' ? 25000 : 60000;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         console.warn(`⏱️ Request timeout after ${timeoutMs}ms`);
@@ -128,10 +130,19 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     
     let tokenResults: any[] = [];
     try {
+      console.log('Starting Ethereum API fetch...');
+      const startTime = Date.now();
       tokenResults = await fetchWithRetry(tokenUrl);
+      const duration = Date.now() - startTime;
+      console.log(`✅ Ethereum API fetch completed in ${duration}ms, got ${tokenResults.length} results`);
     } catch (fetchError) {
       const errorMsg = `Failed to fetch Ethereum transactions: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
-      console.error(errorMsg);
+      console.error('❌ Ethereum fetch error:', errorMsg);
+      console.error('Error type:', fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError);
+      if (errorMsg.includes('timeout') || errorMsg.includes('aborted')) {
+        console.error('⚠️ TIMEOUT DETECTED: Ethereum API request timed out. This is likely due to large number of transactions.');
+        console.error('💡 Solution: Increase Vercel function timeout or implement pagination.');
+      }
       if (!ETHERSCAN_API_KEY) {
         throw new Error('ETHERSCAN_API_KEY environment variable is required. Please set it in Vercel environment variables.');
       }

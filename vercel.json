@@ -2,7 +2,7 @@
   "framework": "nextjs",
   "functions": {
     "app/api/fees/route.ts": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
   }
 }

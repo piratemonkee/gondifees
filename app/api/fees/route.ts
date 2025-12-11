@@ -81,8 +81,16 @@ export async function GET(request: Request) {
               message: errorMsg,
               stack: error instanceof Error ? error.stack : undefined,
               hasApiKey: !!process.env.ETHERSCAN_API_KEY,
-              isProduction: process.env.VERCEL === '1'
+              isProduction: process.env.VERCEL === '1',
+              isTimeout: errorMsg.includes('timeout') || errorMsg.includes('aborted'),
+              vercelFunctionTimeout: process.env.VERCEL ? 'Check vercel.json maxDuration' : 'N/A'
             });
+            
+            // If it's a timeout, provide helpful message
+            if (errorMsg.includes('timeout') || errorMsg.includes('aborted')) {
+              console.error('⚠️ TIMEOUT ISSUE: Ethereum has many transactions and may be timing out.');
+              console.error('💡 The function timeout is set to 60s in vercel.json, but the API request timeout is 25s.');
+            }
           }
           if (hyperevmResult.status === 'rejected') {
             const error = hyperevmResult.reason;
