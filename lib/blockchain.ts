@@ -43,12 +43,26 @@ interface HyperEVMResponse {
 async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(url);
+      console.log(`Fetching from API (attempt ${i + 1}/${retries})...`);
+      const response = await fetch(url, {
+        // Add timeout and better error handling
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+      
+      if (!response.ok) {
+        console.error(`API returned status ${response.status}: ${response.statusText}`);
+        if (i === retries - 1) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        continue;
+      }
+      
       const data: any = await response.json();
+      console.log(`API response - Status: ${data.status}, Message: ${data.message}, Result type: ${typeof data.result}, Result length: ${Array.isArray(data.result) ? data.result.length : 'N/A'}`);
       
       if (data.status === '1' && Array.isArray(data.result)) {
         const results = data.result;
-        console.log(`API returned ${results.length} results`);
+        console.log(`✅ API returned ${results.length} results`);
         
         // If we got exactly 10,000 results, we might be missing some
         // But for now, return what we have
@@ -58,22 +72,31 @@ async function fetchWithRetry(url: string, retries: number = 3): Promise<any[]> 
         
         return results;
       } else if (data.status === '0' && data.message) {
-        console.log(`API response: ${data.message}`);
+        console.log(`⚠️ API response: ${data.message}`);
         // If it's a deprecation warning but we have results, still return them
         if (data.result && Array.isArray(data.result) && data.result.length > 0) {
-          console.log('Got results despite deprecation warning');
+          console.log('✅ Got results despite deprecation warning');
           return data.result;
         }
         // Check if result is a string (deprecation message)
         if (typeof data.result === 'string' && data.result.includes('deprecated')) {
-          console.error('API endpoint is deprecated. Please update to V2 API.');
+          console.error('❌ API endpoint is deprecated. Please update to V2 API.');
         }
+        console.log('⚠️ No results returned from API');
+        return [];
+      } else {
+        console.warn(`⚠️ Unexpected API response format:`, { status: data.status, message: data.message, hasResult: !!data.result });
         return [];
       }
     } catch (error) {
-      console.error(`Attempt ${i + 1} failed:`, error);
-      if (i === retries - 1) throw error;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Attempt ${i + 1} failed:`, errorMsg);
+      if (i === retries - 1) {
+        console.error('❌ All retry attempts failed');
+        throw error;
+      }
       // Wait before retry
+      console.log(`⏳ Waiting ${1000 * (i + 1)}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
