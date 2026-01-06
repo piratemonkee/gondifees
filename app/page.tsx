@@ -106,8 +106,9 @@ function getChartData(data: AggregatedFees | null, activeTab: 'daily' | 'weekly'
       // Handle both date formats: 'yyyy-MM-dd' and 'yyyy-MM'
       let entryDate: Date;
       if (activeTab === 'monthly') {
-        // For monthly, the date format is 'yyyy-MM', so add '-01' to make it a valid date
-        entryDate = new Date(date + '-01T00:00:00Z');
+        // For monthly, parse manually to avoid month index issues
+        const [year, month] = date.split('-').map(Number);
+        entryDate = new Date(year, month - 1, 1); // month - 1 because JS months are 0-indexed
       } else {
         // For daily/weekly, the date format is 'yyyy-MM-dd'
         entryDate = new Date(date + 'T00:00:00Z');
@@ -120,7 +121,9 @@ function getChartData(data: AggregatedFees | null, activeTab: 'daily' | 'weekly'
       if (activeTab === 'monthly') {
         // Monthly format: '2025-10' -> 'Oct 2025'
         try {
-          const monthDate = new Date(date + '-01T00:00:00Z');
+          // Parse the date manually to avoid month index issues
+          const [year, month] = date.split('-').map(Number);
+          const monthDate = new Date(year, month - 1, 1); // month - 1 because JS months are 0-indexed
           displayDate = format(monthDate, 'MMM yyyy');
         } catch (error) {
           console.error('Error formatting monthly date:', date, error);
@@ -148,8 +151,17 @@ function getChartData(data: AggregatedFees | null, activeTab: 'daily' | 'weekly'
     })
     .sort((a, b) => {
       // Sort by actual date values
-      const dateA = activeTab === 'monthly' ? new Date(a.date + '-01T00:00:00Z') : new Date(a.date + 'T00:00:00Z');
-      const dateB = activeTab === 'monthly' ? new Date(b.date + '-01T00:00:00Z') : new Date(b.date + 'T00:00:00Z');
+      let dateA: Date, dateB: Date;
+      if (activeTab === 'monthly') {
+        // Parse monthly dates manually to avoid month index issues
+        const [yearA, monthA] = a.date.split('-').map(Number);
+        const [yearB, monthB] = b.date.split('-').map(Number);
+        dateA = new Date(yearA, monthA - 1, 1);
+        dateB = new Date(yearB, monthB - 1, 1);
+      } else {
+        dateA = new Date(a.date + 'T00:00:00Z');
+        dateB = new Date(b.date + 'T00:00:00Z');
+      }
       return dateA.getTime() - dateB.getTime();
     });
 }
