@@ -8,42 +8,35 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     console.log('🚀 Starting GONDI fee data fetch...');
+    console.log('🔧 Environment check:');
+    console.log('  - Has ETHERSCAN_API_KEY:', !!process.env.ETHERSCAN_API_KEY);
+    console.log('  - Is Vercel:', process.env.VERCEL === '1');
+    console.log('  - NODE_ENV:', process.env.NODE_ENV);
     
     // Fetch Ethereum transactions (USDC, WETH, ETH)
     const transactions = await fetchEthereumTransactions();
     
-    // If no transactions or very few transactions, fall back to demo data in production
-    if (transactions.length === 0 || (transactions.length < 100 && process.env.VERCEL === '1')) {
-      console.warn('⚠️ API returned insufficient data, falling back to demo data');
-      const { generateDemoData } = await import('@/lib/demo-data');
-      const demoTransactions = generateDemoData();
-      console.log(`📊 Using demo data: ${demoTransactions.length} transactions`);
+    // Only fall back to demo data if completely no transactions found
+    if (transactions.length === 0) {
+      const hasApiKey = !!process.env.ETHERSCAN_API_KEY;
+      console.warn(`⚠️ No transactions found. API Key present: ${hasApiKey}`);
       
-      // Use demo data but still try to aggregate normally
-      const demoAggregated = await aggregateFees(demoTransactions);
-      const demoGrandTotalUSD = Object.values(demoAggregated.currencyBreakdown).reduce((sum, breakdown) => sum + breakdown.totalUSD, 0);
+      if (!hasApiKey) {
+        console.error('❌ ETHERSCAN_API_KEY environment variable is not set');
+        return NextResponse.json({
+          success: false,
+          error: 'ETHERSCAN_API_KEY environment variable is not set. Please add it in your environment variables.',
+          hint: 'Get a free API key at https://etherscan.io/myapikey and set it in Vercel environment variables'
+        }, { status: 500 });
+      }
       
+      // If we have API key but no data, something else is wrong
+      console.error('❌ API key present but no transactions found. Check API limits or contract address.');
       return NextResponse.json({
-        success: true,
-        data: demoAggregated,
-        recentTransactions: demoTransactions.slice(0, 10).map(tx => ({
-          hash: tx.hash,
-          timestamp: tx.timestamp,
-          tokenSymbol: tx.tokenSymbol,
-          value: tx.value,
-          tokenDecimal: tx.tokenDecimal,
-          from: tx.from,
-          to: tx.to,
-          network: tx.network,
-          usdValue: 0 // Will be calculated client-side
-        })),
-        meta: {
-          totalTransactions: demoTransactions.length,
-          totalUSD: demoGrandTotalUSD,
-          isDemo: true,
-          reason: transactions.length === 0 ? 'No API data available' : 'Insufficient API data, supplemented with demo'
-        }
-      });
+        success: false,
+        error: 'No transactions found from Etherscan API. This could be due to API rate limits or network issues.',
+        hint: 'Try again in a moment if rate limited, or check if the contract address is correct.'
+      }, { status: 500 });
     }
 
     console.log(`📊 Processing ${transactions.length} transactions...`);

@@ -75,6 +75,7 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     
     console.log('🔍 Fetching transactions for GONDI contract:', GONDI_CONTRACT);
     console.log('📅 Date range: Oct 22, 2025 onwards');
+    console.log('📅 Start timestamp filter:', START_TIMESTAMP, '(', new Date(START_TIMESTAMP * 1000).toISOString(), ')');
     
     if (!ETHERSCAN_API_KEY) {
       console.warn('⚠️ ETHERSCAN_API_KEY not set. API calls may fail.');

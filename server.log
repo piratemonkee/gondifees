@@ -1014,3 +1014,6 @@ Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=accou
  GET /api/fees 200 in 1770ms
  ✓ Compiled in 300ms (1585 modules)
  ✓ Compiled in 90ms (801 modules)
+ ✓ Compiled in 203ms (801 modules)
+ ✓ Compiled in 364ms (1571 modules)
+ ✓ Compiled in 88ms (801 modules)
