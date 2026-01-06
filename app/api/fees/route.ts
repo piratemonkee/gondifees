@@ -8,6 +8,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     console.log('🚀 Starting GONDI fee data fetch...');
+    console.log('🌍 Environment Info:');
+    console.log('   - ETHERSCAN_API_KEY present:', !!process.env.ETHERSCAN_API_KEY);
+    console.log('   - NODE_ENV:', process.env.NODE_ENV);
+    console.log('   - VERCEL:', process.env.VERCEL);
     
     // Fetch Ethereum transactions (USDC, WETH, ETH)
     const transactions = await fetchEthereumTransactions();

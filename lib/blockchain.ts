@@ -75,6 +75,11 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     
     console.log('🔍 Fetching transactions for GONDI contract:', GONDI_CONTRACT);
     console.log('📅 Date range: Oct 22, 2025 onwards');
+    console.log('🔑 API Key present:', !!ETHERSCAN_API_KEY);
+
+    if (!ETHERSCAN_API_KEY) {
+      throw new Error('ETHERSCAN_API_KEY is required but not set');
+    }
 
     // Build URLs with start timestamp filter (using V2 API)
     const baseParams = `&startblock=0&endblock=99999999&sort=asc&apikey=${ETHERSCAN_API_KEY}`;
@@ -89,6 +94,9 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
     const normalUrl = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=${GONDI_CONTRACT}${baseParams}`;
 
     console.log('🔗 Starting parallel API calls...');
+    console.log('📍 Token URL:', tokenUrl);
+    console.log('📍 Internal URL:', internalUrl);
+    console.log('📍 Normal URL:', normalUrl);
     
     // Fetch all three types in parallel
     const [tokenResults, internalResults, normalResults] = await Promise.allSettled([
@@ -96,6 +104,11 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
       fetchWithRetry(internalUrl),
       fetchWithRetry(normalUrl)
     ]);
+    
+    console.log('📊 API Results Summary:');
+    console.log('  - Token Results Status:', tokenResults.status);
+    console.log('  - Internal Results Status:', internalResults.status);
+    console.log('  - Normal Results Status:', normalResults.status);
 
     // Process ERC-20 token transfers (USDC & WETH)
     if (tokenResults.status === 'fulfilled') {
@@ -129,9 +142,11 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
         }));
 
       transactions.push(...tokens);
-      console.log(`✅ Processed ${tokens.length} ERC-20 token transactions`);
+      console.log(`✅ Processed ${tokens.length} ERC-20 token transactions (USDC/WETH)`);
     } else {
-      console.error('❌ Token transactions failed:', tokenResults.reason);
+      console.error('❌ Token transactions (USDC/WETH) failed!');
+      console.error('   Reason:', tokenResults.reason);
+      console.error('   This means USDC and WETH revenue will be missing!');
     }
 
     // Process internal ETH transactions
@@ -212,6 +227,17 @@ export async function fetchEthereumTransactions(): Promise<Transaction[]> {
 
     console.log(`🎯 Final Summary: ${uniqueTransactions.length} unique transactions`);
     console.log('📊 By currency:', summary);
+    
+    // Critical check for missing currencies
+    if (!summary['USDC'] || summary['USDC'] === 0) {
+      console.error('🚨 WARNING: No USDC transactions found! This indicates token API failure.');
+    }
+    if (!summary['WETH'] || summary['WETH'] === 0) {
+      console.error('🚨 WARNING: No WETH transactions found! This indicates token API failure.');
+    }
+    if (summary['ETH'] && summary['ETH'] > 0) {
+      console.log('✅ ETH transactions found successfully.');
+    }
     
     return uniqueTransactions;
 
