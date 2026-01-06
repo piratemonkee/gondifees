@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AggregatedFees } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, startOfWeek, startOfMonth } from 'date-fns';
 import { parseTransactionValue } from '@/lib/blockchain';
 import {
   BarChart,
@@ -13,17 +13,54 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 
-// Vercel-style monochrome palette with subtle variations
-// Color palette for 4 currencies
-const CURRENCY_COLORS: { [key: string]: string } = {
-  'USDC': '#2775CA', // Blue (Ethereum USDC)
-  'WETH': '#8B5CF6', // Purple/Violet (more distinguishable)
-  'HUSDC': '#3B82F6', // Lighter blue (HyperEVM USDC)
-  'WHYPE': '#10B981', // Green (HyperEVM WHYPE)
+// Elegant fintech design system
+const DESIGN_SYSTEM = {
+  colors: {
+    // Professional neutral grays
+    gray: {
+      50: '#fafbfc',
+      100: '#f4f6f8',
+      200: '#e4e7ea',
+      300: '#d1d6db',
+      400: '#9ca3af',
+      500: '#6b7280',
+      600: '#4b5563',
+      700: '#374151',
+      800: '#1f2937',
+      900: '#111827',
+      950: '#0d1117',
+    },
+    // Sophisticated primary (deep navy)
+    primary: {
+      50: '#f8fafc',
+      100: '#f1f5f9',
+      500: '#1e40af',
+      600: '#1d4ed8',
+      700: '#1e3a8a',
+    },
+    // Professional accent
+    accent: {
+      500: '#059669',
+      600: '#047857',
+    },
+    // Success states
+    success: {
+      50: '#f0fdf4',
+      500: '#059669',
+    },
+  }
 };
 
+const CURRENCY_COLORS = {
+  'ETH': '#1e40af',     // Deep professional blue
+  'WETH': '#059669',    // Sophisticated emerald green  
+  'USDC': '#6366f1',    // Refined indigo
+};
 
 interface RecentTransaction {
   hash: string;
@@ -33,8 +70,142 @@ interface RecentTransaction {
   tokenDecimal?: number;
   from: string;
   to: string;
-  network: 'ethereum' | 'hyperevm';
+  network: string;
   usdValue?: number;
+}
+
+interface MetricCardProps {
+  title: string;
+  value: string;
+  subtitle?: string;
+  trend?: {
+    value: number;
+    isPositive: boolean;
+  };
+  icon: React.ReactNode;
+  color: string;
+}
+
+// Helper functions
+function getTotalFees(data: AggregatedFees | null): number {
+  if (!data?.currencyBreakdown) return 0;
+  return Object.values(data.currencyBreakdown).reduce((sum, breakdown) => sum + (breakdown?.totalUSD || 0), 0);
+}
+
+function getChartData(data: AggregatedFees | null, activeTab: 'daily' | 'weekly' | 'monthly') {
+  if (!data) return [];
+  
+  const source = data[activeTab];
+  
+  // Filter to only show data from October 2025 onwards and ensure proper date parsing
+  const startDate = new Date('2025-10-01T00:00:00Z');
+  const endDate = new Date('2026-02-01T00:00:00Z'); // End of January 2026
+  
+  return Object.entries(source)
+    .filter(([date]) => {
+      // Handle both date formats: 'yyyy-MM-dd' and 'yyyy-MM'
+      let entryDate: Date;
+      if (activeTab === 'monthly') {
+        // For monthly, the date format is 'yyyy-MM', so add '-01' to make it a valid date
+        entryDate = new Date(date + '-01T00:00:00Z');
+      } else {
+        // For daily/weekly, the date format is 'yyyy-MM-dd'
+        entryDate = new Date(date + 'T00:00:00Z');
+      }
+      return entryDate >= startDate && entryDate < endDate;
+    })
+    .map(([date, values]: [string, any]) => {
+      // Create proper date object for display
+      let displayDate: string;
+      if (activeTab === 'monthly') {
+        // Monthly format: '2025-10' -> 'Oct 2025'
+        const monthDate = new Date(date + '-01T00:00:00Z');
+        displayDate = format(monthDate, 'MMM yyyy');
+      } else {
+        // Daily/Weekly format: '2025-10-22' -> 'Oct 22'  
+        const dayDate = new Date(date + 'T00:00:00Z');
+        displayDate = format(dayDate, 'MMM dd');
+      }
+      
+      return {
+        date: date,
+        displayDate: displayDate,
+        ETH: values.currenciesUSD?.ETH || 0,
+        WETH: values.currenciesUSD?.WETH || 0, 
+        USDC: values.currenciesUSD?.USDC || 0,
+        totalUSD: values.totalUSD || 0,
+      };
+    })
+    .sort((a, b) => {
+      // Sort by actual date values
+      const dateA = activeTab === 'monthly' ? new Date(a.date + '-01T00:00:00Z') : new Date(a.date + 'T00:00:00Z');
+      const dateB = activeTab === 'monthly' ? new Date(b.date + '-01T00:00:00Z') : new Date(b.date + 'T00:00:00Z');
+      return dateA.getTime() - dateB.getTime();
+    });
+}
+
+function getCurrencyPieData(data: AggregatedFees | null) {
+  if (!data?.currencyBreakdown) return [];
+  
+  return Object.entries(data.currencyBreakdown).map(([currency, breakdown]) => ({
+    name: currency,
+    value: breakdown.totalUSD,
+    percentage: breakdown.percentage,
+    count: breakdown.total,
+  }));
+}
+
+function formatValue(value: number): string {
+  if (value === 0) return '0';
+  if (value < 1) return value.toFixed(6);
+  if (value < 1000) return value.toFixed(2);
+  return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', 
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function MetricCard({ title, value, subtitle, trend, icon, color }: MetricCardProps) {
+  return (
+    <div className="group bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-all duration-200">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-medium text-gray-600">{title}</p>
+        <div 
+          className="w-8 h-8 rounded-md flex items-center justify-center"
+          style={{ backgroundColor: color + '15' }}
+        >
+          <div style={{ color }} className="w-4 h-4">
+            {icon}
+          </div>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-2xl font-semibold text-gray-900 tracking-tight">{value}</p>
+        <div className="flex items-center justify-between">
+          {subtitle && (
+            <p className="text-sm text-gray-500">{subtitle}</p>
+          )}
+          {trend && (
+            <div className={`flex items-center gap-1 text-xs font-medium ${trend.isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d={trend.isPositive 
+                  ? "M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z"
+                  : "M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z"
+                } />
+              </svg>
+              {Math.abs(trend.value).toFixed(1)}%
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -43,1015 +214,375 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Monitor data changes
   useEffect(() => {
-    if (data) {
-      console.log('🔄 Data state updated:', {
-        hasCurrencyBreakdown: !!data.currencyBreakdown,
-        currencies: Object.keys(data.currencyBreakdown || {}),
-        USDC: data.currencyBreakdown?.USDC?.totalUSD,
-        WETH: data.currencyBreakdown?.WETH?.totalUSD,
-        HUSDC: data.currencyBreakdown?.HUSDC?.totalUSD,
-        WHYPE: data.currencyBreakdown?.WHYPE?.totalUSD,
-      });
-    }
-  }, [data]);
-
-  // Load cached data on mount, or fetch if no cache
-  useEffect(() => {
-    const hasCache = loadCachedData();
-    // If no cache exists, fetch data on initial load
-    if (!hasCache) {
-      console.log('No cache found, fetching data on initial load...');
-      fetchFees(false); // Fetch without forcing API (will use CSV in local dev)
-    }
+    fetchFees();
   }, []);
 
-  // Load data from localStorage cache
-  const loadCachedData = () => {
+  const fetchFees = async (isUpdate: boolean = false) => {
     try {
-      const cached = localStorage.getItem('gondi-fees-cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        const cacheTime = new Date(parsed.timestamp);
-        const now = new Date();
-        const hoursSinceUpdate = (now.getTime() - cacheTime.getTime()) / (1000 * 60 * 60);
-        
-        // Validate cache data - check if Ethereum fees are $0 (invalid cache)
-        const ethereumTotal = (parsed.data?.currencyBreakdown?.USDC?.totalUSD || 0) + 
-                             (parsed.data?.currencyBreakdown?.WETH?.totalUSD || 0);
-        const hasInvalidEthereumData = ethereumTotal === 0 && 
-                                       (parsed.data?.currencyBreakdown?.HUSDC?.totalUSD || 0) > 0;
-        
-        if (hasInvalidEthereumData) {
-          console.warn('⚠️ Cache has invalid data (Ethereum fees are $0 but HyperEVM has data). Clearing cache and fetching fresh data.');
-          localStorage.removeItem('gondi-fees-cache');
-          return false;
-        }
-        
-        // Use cache if less than 24 hours old
-        if (hoursSinceUpdate < 24) {
-          console.log('📦 Loading from cache...');
-          console.log('📦 Cached currency breakdown:', parsed.data?.currencyBreakdown);
-          
-          // Debug cached values
-          if (parsed.data?.currencyBreakdown) {
-            const cachedUSDC = parsed.data.currencyBreakdown.USDC?.totalUSD || 0;
-            const cachedWETH = parsed.data.currencyBreakdown.WETH?.totalUSD || 0;
-            console.log('📦 Cached USDC:', cachedUSDC);
-            console.log('📦 Cached WETH:', cachedWETH);
-            console.log('📦 Cached Ethereum Total:', cachedUSDC + cachedWETH);
-            
-            // Warn if Ethereum data looks wrong
-            if (cachedUSDC === 0 && cachedWETH === 0) {
-              console.warn('⚠️ WARNING: Cached Ethereum fees are both $0. This might be invalid data.');
-            }
-          }
-          
-          setData(parsed.data);
-          setRecentTransactions(parsed.recentTransactions || []);
-          setLastUpdated(cacheTime);
-          setLoading(false);
-          console.log('✅ Loaded data from cache');
-          return true;
-        } else {
-          console.log('⚠️ Cache expired, will fetch fresh data');
-        }
-      }
-    } catch (err) {
-      console.error('Error loading cache:', err);
-    }
-    // Don't set loading to false here - let fetchFees handle it
-    return false;
-  };
-
-  // Save data to localStorage cache
-  const saveToCache = (data: AggregatedFees, recentTransactions: RecentTransaction[]) => {
-    try {
-      const cacheData = {
-        data,
-        recentTransactions,
-        timestamp: new Date().toISOString(),
-      };
-      localStorage.setItem('gondi-fees-cache', JSON.stringify(cacheData));
-      console.log('✅ Saved data to cache');
-    } catch (err) {
-      console.error('Error saving cache:', err);
-    }
-  };
-
-  const fetchFees = async (forceApi: boolean = false, isUpdate: boolean = false) => {
-    try {
-      // If it's an update, use isUpdating state, otherwise use loading
       if (isUpdate) {
         setIsUpdating(true);
-        setUpdateMessage({ type: 'info', text: 'Fetching latest data from blockchain...' });
       } else {
         setLoading(true);
       }
       setError(null);
       
-      // On initial load, don't force incremental (let server decide based on last processed data)
-      // Only use incremental explicitly when user clicks Update button
-      const url = forceApi ? '/api/fees?forceApi=true' : '/api/fees';
-      
-      const response = await fetch(url);
-      
-      // Check if response is actually JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text.substring(0, 200));
-        throw new Error(`Server returned ${response.status}: ${response.statusText}. Response is not JSON.`);
-      }
-      
+      const response = await fetch('/api/fees');
       const result = await response.json();
       
-      // Handle timeout errors
-      if (result.timeout) {
-        const errorMsg = result.details || 'Request timed out. The data fetch is taking too long.';
-        if (isUpdate) {
-          setUpdateMessage({ 
-            type: 'error', 
-            text: `⏱️ ${errorMsg} Try using "Full Refresh" or wait a moment.` 
-          });
-          setTimeout(() => setUpdateMessage(null), 8000);
-        } else {
-          setError(errorMsg);
-        }
-        return;
-      }
-      
       if (result.success) {
-        console.log('✅ Data received from API:', {
-          hasData: !!result.data,
-          currencyBreakdown: result.data?.currencyBreakdown,
-          stats: result.stats
-        });
-        
-        // Debug: Log each currency value
-        if (result.data?.currencyBreakdown) {
-          console.log('🔍 Currency Breakdown Values:');
-          console.log('  USDC:', result.data.currencyBreakdown.USDC);
-          console.log('  WETH:', result.data.currencyBreakdown.WETH);
-          console.log('  HUSDC:', result.data.currencyBreakdown.HUSDC);
-          console.log('  WHYPE:', result.data.currencyBreakdown.WHYPE);
-          
-          // Calculate totals
-          const ethereumTotal = (result.data.currencyBreakdown.USDC?.totalUSD || 0) + (result.data.currencyBreakdown.WETH?.totalUSD || 0);
-          const hyperevmTotal = (result.data.currencyBreakdown.HUSDC?.totalUSD || 0) + (result.data.currencyBreakdown.WHYPE?.totalUSD || 0);
-          console.log('  Ethereum Total:', ethereumTotal);
-          console.log('  HyperEVM Total:', hyperevmTotal);
-        }
-        
         setData(result.data);
         setRecentTransactions(result.recentTransactions || []);
-        setLastUpdated(new Date());
         setError(null);
-        
-        // Save to cache
-        saveToCache(result.data, result.recentTransactions || []);
-        
-        // Show success message if updating
-        if (isUpdate) {
-          const txCount = result.stats?.totalTransactions || 0;
-          setUpdateMessage({ 
-            type: 'success', 
-            text: `✅ Successfully updated! Loaded ${txCount} transactions.` 
-          });
-          // Clear message after 5 seconds
-          setTimeout(() => setUpdateMessage(null), 5000);
-        }
       } else {
-        const errorMsg = result.error || 'Failed to fetch data';
-        const details = result.details || '';
-        const hint = result.hint || '';
-        const fullError = `${errorMsg}${details ? `: ${details}` : ''}${hint ? ` (${hint})` : ''}`;
-        
-        if (isUpdate) {
-          setUpdateMessage({ type: 'error', text: `❌ ${fullError}` });
-          setTimeout(() => setUpdateMessage(null), 8000);
-        } else {
-          setError(fullError);
-        }
+        setError(result.error || 'Failed to fetch data');
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch fee data';
-      
-      if (isUpdate) {
-        setUpdateMessage({ type: 'error', text: `❌ Network error: ${errorMsg}` });
-        setTimeout(() => setUpdateMessage(null), 8000);
-        
-        // If we have cached data, keep showing it
-        const hasCache = loadCachedData();
-        if (hasCache) {
-          setUpdateMessage({ type: 'info', text: '⚠️ Using cached data due to network error.' });
-          setTimeout(() => setUpdateMessage(null), 5000);
-        }
-      } else {
-        // If we have cached data, don't show error, just use cache
-        const hasCache = loadCachedData();
-        if (!hasCache) {
-          setError(`Network error: ${errorMsg}`);
-        } else {
-          setError(null); // Clear error if we have cache
-        }
-      }
-      
-      console.error('Fetch error:', err);
+      setError(errorMsg);
     } finally {
-      if (isUpdate) {
-        setIsUpdating(false);
-      } else {
-        setLoading(false);
-      }
-    }
-  };
-
-  const handleUpdate = async (fullRefresh: boolean = false): Promise<void> => {
-    setIsUpdating(true);
-    setUpdateMessage({ 
-      type: 'info', 
-      text: fullRefresh 
-        ? '🔄 Performing full refresh - fetching all transactions...' 
-        : '🔄 Checking for new transactions since last update...' 
-    });
-    
-    try {
-      // Always fetch from API when Update is clicked
-      // By default, use incremental update (only fetch new transactions)
-      const url = fullRefresh 
-        ? '/api/fees?forceApi=true&fullRefresh=true'
-        : '/api/fees?forceApi=true&incremental=true';
-      
-      const response = await fetch(url);
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('✅ Update successful:', {
-          newTransactions: result.stats?.totalTransactions || 0,
-          lastProcessed: result.lastProcessed,
-        });
-        
-        // Show update message
-        const ethereumNew = result.stats?.ethereumTransactions || 0;
-        const hyperevmNew = result.stats?.hyperevmTransactions || 0;
-        const message = fullRefresh
-          ? `✅ Full refresh complete! Loaded ${result.stats?.totalTransactions || 0} transactions.`
-          : `✅ Incremental update complete! Found ${ethereumNew + hyperevmNew} new transactions (${ethereumNew} Ethereum, ${hyperevmNew} HyperEVM).`;
-        
-        setUpdateMessage({ type: 'success', text: message });
-        setTimeout(() => setUpdateMessage(null), 5000);
-        
-        // Update data
-        setData(result.data);
-        setRecentTransactions(result.recentTransactions || []);
-        setLastUpdated(new Date());
-        saveToCache(result.data, result.recentTransactions || []);
-      } else {
-        setUpdateMessage({ type: 'error', text: `❌ ${result.error || 'Update failed'}` });
-        setTimeout(() => setUpdateMessage(null), 5000);
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Update failed';
-      setUpdateMessage({ type: 'error', text: `❌ Network error: ${errorMsg}` });
-      setTimeout(() => setUpdateMessage(null), 5000);
-    } finally {
+      setLoading(false);
       setIsUpdating(false);
     }
   };
 
-  const handleClearCache = () => {
-    try {
-      localStorage.removeItem('gondi-fees-cache');
-      console.log('✅ Cache cleared');
-      setUpdateMessage({ type: 'success', text: '✅ Cache cleared! Refreshing data...' });
-      setTimeout(() => {
-        setUpdateMessage(null);
-        fetchFees(true, true); // Fetch fresh data
-      }, 1000);
-    } catch (err) {
-      console.error('Error clearing cache:', err);
-      setUpdateMessage({ type: 'error', text: '❌ Failed to clear cache' });
-      setTimeout(() => setUpdateMessage(null), 3000);
-    }
-  };
+  const handleUpdate = () => fetchFees(true);
 
-  const getTotalFees = () => {
-    if (!data) {
-      console.warn('⚠️ getTotalFees: No data available');
-      return 0;
-    }
-    if (!data.currencyBreakdown) {
-      console.warn('⚠️ getTotalFees: No currencyBreakdown in data');
-      return 0;
-    }
-    
-    // Sum all 4 currencies: USDC, WETH, HUSDC, WHYPE
-    const currencies = ['USDC', 'WETH', 'HUSDC', 'WHYPE'];
-    const total = currencies.reduce((sum, currency) => {
-      const breakdown = data.currencyBreakdown[currency];
-      const value = breakdown?.totalUSD ?? 0;
-      
-      // Detailed logging for Ethereum currencies
-      if (currency === 'USDC' || currency === 'WETH') {
-        console.log(`💰 [getTotalFees] ${currency}:`, {
-          hasBreakdown: !!breakdown,
-          breakdown: breakdown,
-          totalUSD: breakdown?.totalUSD,
-          value: value,
-          type: typeof value
-        });
-      }
-      
-      return sum + value;
-    }, 0);
-    
-    console.log(`💰 [getTotalFees] Total: $${total.toFixed(2)}`);
-    console.log('💰 [getTotalFees] Full breakdown:', JSON.stringify(data.currencyBreakdown, null, 2));
-    
-    return total;
-  };
-
-  const getChartData = () => {
-    if (!data) return [];
-    
-    const source = data[activeTab];
-    const firstFeeDate = '2025-10-22'; // First fee transaction date
-    
-    const chartData = Object.entries(source)
-      .filter(([date]) => {
-        // For monthly view, include October (2025-10)
-        if (activeTab === 'monthly') {
-          return date >= '2025-10';
-        }
-        // For daily and weekly, filter from Oct 22
-        return date >= firstFeeDate;
-      })
-      .map(([date, values]: [string, { totalUSD: number; currenciesUSD?: { [key: string]: number } }]) => {
-        return {
-          date,
-          'USDC': values.currenciesUSD?.USDC || 0,
-          'WETH': values.currenciesUSD?.WETH || 0,
-          'HUSDC': values.currenciesUSD?.HUSDC || 0,
-          'WHYPE': values.currenciesUSD?.WHYPE || 0,
-          total: values.totalUSD || 0,
-        };
-      })
-      .sort((a, b) => a.date.localeCompare(b.date));
-    
-    // Calculate totals for debugging
-    const chartTotals = chartData.reduce((acc, entry) => {
-      acc.USDC += entry.USDC || 0;
-      acc.WETH += entry.WETH || 0;
-      acc.HUSDC += entry.HUSDC || 0;
-      acc.WHYPE += entry.WHYPE || 0;
-      return acc;
-    }, { USDC: 0, WETH: 0, HUSDC: 0, WHYPE: 0 });
-    
-    console.log(`📊 Chart data: ${chartData.length} entries from ${chartData[0]?.date || 'N/A'} to ${chartData[chartData.length - 1]?.date || 'N/A'}`);
-    console.log(`📊 Chart totals - USDC: $${chartTotals.USDC.toFixed(2)}, WETH: $${chartTotals.WETH.toFixed(2)}, HUSDC: $${chartTotals.HUSDC.toFixed(2)}, WHYPE: $${chartTotals.WHYPE.toFixed(2)}`);
-    console.log(`📊 Ethereum total in chart: $${(chartTotals.USDC + chartTotals.WETH).toFixed(2)}`);
-    console.log(`📊 HyperEVM total in chart: $${(chartTotals.HUSDC + chartTotals.WHYPE).toFixed(2)}`);
-    
-    return chartData;
-  };
-
-  // Only show full loading screen on initial load, not during updates
+  // Loading state
   if (loading && !data) {
     return (
-      <div className="container">
-        <div className="loading">Loading fee data...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full border-2 border-gray-200"></div>
+            <div className="w-12 h-12 rounded-full border-2 border-black border-t-transparent absolute top-0 animate-spin"></div>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mt-4">Loading Analytics</h2>
+          <p className="text-gray-500 mt-1">Fetching transaction data...</p>
+        </div>
       </div>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <div className="container">
-        <div className="error">
-          <p>{error}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-8 max-w-md w-full text-center">
+          <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Connection Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => fetchFees()}
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              background: '#171717',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'background-color 0.15s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#262626'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#171717'}
+            className="w-full bg-black hover:bg-gray-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
           >
-            Retry
+            Try Again
           </button>
         </div>
       </div>
     );
   }
 
-  const totalFees = getTotalFees();
-  const chartData = getChartData();
-
-  const formatValue = (value: number) => {
-    if (value === 0) return '0';
-    if (value < 0.0001) return value.toExponential(2);
-    if (value < 1) return value.toFixed(6);
-    if (value < 1000) return value.toFixed(4);
-    return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
-  };
-
-  if (!data || totalFees === 0) {
-    return (
-      <div className="container">
-        <div className="header">
-          <h1>GONDI Protocol Fees Dashboard</h1>
-          <p>Track fees collected across Ethereum and HyperEVM networks</p>
-        </div>
-        <div className="error" style={{ background: 'white', color: '#666', maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ color: '#333', marginBottom: '1rem' }}>No Fee Data Found</h2>
-          <p style={{ marginBottom: '1rem' }}>This could mean:</p>
-          <ul style={{ textAlign: 'left', marginTop: '1rem', paddingLeft: '2rem', marginBottom: '1.5rem' }}>
-            <li><strong>API Key Required:</strong> Etherscan API V1 is deprecated. You need a free API key to fetch data.</li>
-            <li>The addresses have not received any transactions yet</li>
-            <li>The API endpoints are temporarily unavailable</li>
-          </ul>
-          <div style={{ background: '#f0f4ff', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-            <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Quick Setup:</h3>
-            <ol style={{ textAlign: 'left', paddingLeft: '1.5rem' }}>
-              <li>Get a free API key at <a href="https://etherscan.io/myapikey" target="_blank" rel="noopener noreferrer" style={{ color: '#667eea' }}>etherscan.io/myapikey</a></li>
-              <li>Add it to <code style={{ background: '#e0e0e0', padding: '2px 6px', borderRadius: '4px' }}>.env.local</code>: <code style={{ background: '#e0e0e0', padding: '2px 6px', borderRadius: '4px' }}>ETHERSCAN_API_KEY=your_key</code></li>
-              <li>Restart the server and refresh this page</li>
-            </ol>
-          </div>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              handleUpdate(false);
-            }}
-            disabled={isUpdating || loading}
-            style={{
-              padding: '0.5rem 1rem',
-              background: (isUpdating || loading) ? '#a3a3a3' : '#171717',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: (isUpdating || loading) ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              marginRight: '0.5rem',
-              transition: 'background-color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isUpdating && !loading) {
-                e.currentTarget.style.backgroundColor = '#262626';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isUpdating && !loading) {
-                e.currentTarget.style.backgroundColor = '#171717';
-              }
-            }}
-          >
-            {isUpdating ? 'Updating...' : 'Update'}
-          </button>
-          <a
-            href="https://etherscan.io/myapikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              padding: '0.5rem 1rem',
-              background: '#171717',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              display: 'inline-block',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'background-color 0.15s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#262626'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#171717'}
-          >
-            Get API Key
-          </a>
-        </div>
-      </div>
-    );
-  }
+  const totalFees = getTotalFees(data);
+  const chartData = getChartData(data, activeTab);
+  const pieData = getCurrencyPieData(data);
 
   return (
-    <div className="container">
-      {/* Update Status Notification */}
-      {updateMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: updateMessage.type === 'success' ? '#10b981' : 
-                     updateMessage.type === 'error' ? '#ef4444' : '#3b82f6',
-          color: 'white',
-          padding: '1rem 1.5rem',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          maxWidth: '400px',
-          fontSize: '0.875rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          animation: 'slideIn 0.3s ease-out',
-        }}>
-          <span>{updateMessage.text}</span>
-          <button
-            onClick={() => setUpdateMessage(null)}
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: 'none',
-              color: 'white',
-              borderRadius: '4px',
-              padding: '0.25rem 0.5rem',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-      
-      <div className="header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', gap: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <h1>GONDI Protocol Fees Dashboard</h1>
-            <p>Track fees collected across Ethereum and HyperEVM networks</p>
-            {data && (data as any).isDemo && (
-              <div style={{ 
-                background: '#fafafa', 
-                border: '1px solid #e5e5e5',
-                padding: '0.75rem 1rem', 
-                borderRadius: '6px', 
-                marginTop: '1rem',
-                fontSize: '0.875rem',
-                color: '#737373',
-                display: 'inline-block'
-              }}>
-                📊 Showing demo data. Add your Etherscan API key to see real blockchain data.
+    <div className="min-h-screen bg-gray-50">
+      {/* Top navigation */}
+      <nav className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-4">
+              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">G</span>
               </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={handleClearCache}
-                disabled={isUpdating || loading}
-                style={{
-                  padding: '0.625rem 1rem',
-                  background: loading ? '#a3a3a3' : '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  transition: 'background-color 0.15s',
-                  whiteSpace: 'nowrap',
-                  height: 'fit-content',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#dc2626';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#ef4444';
-                  }
-                }}
-                title="Clear cached data and refresh"
-              >
-                Clear Cache
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleUpdate(false);
-                }}
-                disabled={isUpdating || loading}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  background: loading ? '#a3a3a3' : '#171717',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  transition: 'background-color 0.15s',
-                  whiteSpace: 'nowrap',
-                  height: 'fit-content',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#262626';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#171717';
-                  }
-                }}
-                title="Update: Fetch only new transactions since last update (incremental)"
-              >
-                {isUpdating ? 'Updating...' : 'Update'}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleUpdate(true);
-                }}
-                disabled={isUpdating || loading}
-                style={{
-                  padding: '0.625rem 1rem',
-                  background: loading ? '#a3a3a3' : '#f59e0b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  transition: 'background-color 0.15s',
-                  whiteSpace: 'nowrap',
-                  height: 'fit-content',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#d97706';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#f59e0b';
-                  }
-                }}
-                title="Full Refresh: Fetch all transactions from October 22, 2025 (slower)"
-              >
-                Full Refresh
-              </button>
-            </div>
-            {lastUpdated && (
-              <div style={{ fontSize: '0.75rem', color: '#737373' }}>
-                Last updated: {format(lastUpdated, 'MMM dd, yyyy HH:mm:ss')}
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">GONDI Analytics</h1>
+                <p className="text-sm text-gray-600">Protocol revenue insights</p>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Network Summary */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(2, 1fr)', 
-        gap: '1rem', 
-        marginBottom: '2rem' 
-      }}>
-        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-          <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Ethereum Network</h3>
-          <div className="value" style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold' }}>
-            ${formatValue((data?.currencyBreakdown.USDC?.totalUSD || 0) + (data?.currencyBreakdown.WETH?.totalUSD || 0))}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-            USDC: ${formatValue(data?.currencyBreakdown.USDC?.totalUSD || 0)} • 
-            WETH: ${formatValue(data?.currencyBreakdown.WETH?.totalUSD || 0)}
-          </div>
-        </div>
-        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-          <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>HyperEVM Network</h3>
-          <div className="value" style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold' }}>
-            ${formatValue((data?.currencyBreakdown.HUSDC?.totalUSD || 0) + (data?.currencyBreakdown.WHYPE?.totalUSD || 0))}
-          </div>
-          <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-            HUSDC: ${formatValue(data?.currencyBreakdown.HUSDC?.totalUSD || 0)} • 
-            WHYPE: ${formatValue(data?.currencyBreakdown.WHYPE?.totalUSD || 0)}
-          </div>
-        </div>
-      </div>
-
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-        <div className="stat-card">
-          <h3>Total Fees Collected</h3>
-          <div className="value">${formatValue(totalFees)}</div>
-          <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.5rem' }}>
-            Ethereum: ${formatValue((data?.currencyBreakdown.USDC?.totalUSD || 0) + (data?.currencyBreakdown.WETH?.totalUSD || 0))} • 
-            HyperEVM: ${formatValue((data?.currencyBreakdown.HUSDC?.totalUSD || 0) + (data?.currencyBreakdown.WHYPE?.totalUSD || 0))}
-          </div>
-        </div>
-        {['USDC', 'WETH', 'HUSDC', 'WHYPE'].map((currency) => {
-          const breakdown = data?.currencyBreakdown?.[currency];
-          // Always show all 4 currencies, even if breakdown is missing (show $0)
-          const totalUSD = breakdown?.totalUSD ?? 0;
-          const percentage = breakdown?.percentage ?? 0;
-          
-          // Debug logging - log every render
-          console.log(`[RENDER] Currency ${currency}:`, {
-            hasData: !!data,
-            hasCurrencyBreakdown: !!data?.currencyBreakdown,
-            hasBreakdown: !!breakdown,
-            breakdown: breakdown,
-            totalUSD: totalUSD,
-            percentage: percentage,
-            rawValue: breakdown?.totalUSD
-          });
-          
-          // Force re-render check
-          if (!data) {
-            console.warn(`[RENDER] No data available for ${currency}`);
-          }
-          if (!data?.currencyBreakdown) {
-            console.warn(`[RENDER] No currencyBreakdown for ${currency}`);
-          }
-          if (!breakdown) {
-            console.warn(`[RENDER] No breakdown object for ${currency}`);
-          }
-          
-          return (
-            <div key={currency} className="stat-card">
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{
-                  display: 'inline-block',
-                  width: '12px',
-                  height: '12px',
-                  backgroundColor: CURRENCY_COLORS[currency] || '#666',
-                  borderRadius: '2px'
-                }}></span>
-                {currency}
-                {(currency === 'USDC' || currency === 'WETH') && (
-                  <span style={{ fontSize: '0.7rem', color: '#737373', marginLeft: '0.25rem' }}>
-                    (Ethereum)
-                  </span>
-                )}
-                {(currency === 'HUSDC' || currency === 'WHYPE') && (
-                  <span style={{ fontSize: '0.7rem', color: '#737373', marginLeft: '0.25rem' }}>
-                    (HyperEVM)
-                  </span>
-                )}
-              </h3>
-              <div className="value" style={{ 
-                color: totalUSD === 0 && breakdown ? '#ef4444' : 'inherit',
-                fontWeight: totalUSD === 0 && breakdown ? 'bold' : 'normal'
-              }}>
-                ${formatValue(totalUSD)}
-              </div>
-              {percentage > 0 && (
-                <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem' }}>
-                  {percentage.toFixed(1)}%
-                </div>
-              )}
-              {totalUSD === 0 && breakdown && (
-                <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.25rem' }}>
-                  ⚠️ Breakdown exists but totalUSD is 0
-                </div>
-              )}
-              {totalUSD === 0 && !breakdown && (
-                <div style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: '0.25rem' }}>
-                  ⚠️ No breakdown data
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
-
-      {chartData.length > 0 && (
-        <div className="chart-container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Fee Trends</h2>
-            <div style={{ fontSize: '0.875rem', color: '#737373' }}>
-              Ethereum: ${formatValue((data?.currencyBreakdown.USDC?.totalUSD || 0) + (data?.currencyBreakdown.WETH?.totalUSD || 0))} • 
-              HyperEVM: ${formatValue((data?.currencyBreakdown.HUSDC?.totalUSD || 0) + (data?.currencyBreakdown.WHYPE?.totalUSD || 0))}
-            </div>
-          </div>
-          <div className="tabs">
+            
             <button
-              className={`tab ${activeTab === 'daily' ? 'active' : ''}`}
-              onClick={() => setActiveTab('daily')}
+              onClick={handleUpdate}
+              disabled={isUpdating}
+              className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors duration-200"
             >
-              Daily
-            </button>
-            <button
-              className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
-              onClick={() => setActiveTab('weekly')}
-            >
-              Weekly
-            </button>
-            <button
-              className={`tab ${activeTab === 'monthly' ? 'active' : ''}`}
-              onClick={() => setActiveTab('monthly')}
-            >
-              Monthly
+              {isUpdating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Updating</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Refresh</span>
+                </>
+              )}
             </button>
           </div>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fill: '#666', fontSize: 12 }}
-                axisLine={{ stroke: '#e5e5e5' }}
-              />
-              <YAxis 
-                tick={{ fill: '#666', fontSize: 12 }}
-                axisLine={{ stroke: '#e5e5e5' }}
-                tickFormatter={(value) => {
-                  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-                }}
-              />
-              <Tooltip 
-                formatter={(value: number, name: string) => {
-                  if (value === 0) return null;
-                  return [`$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`, name];
-                }}
-                content={({ active, payload, label }) => {
-                  if (!active || !payload || !payload.length) return null;
-                  
-                  // Calculate total from all non-zero values
-                  const total = payload.reduce((sum, entry) => {
-                    const val = typeof entry.value === 'number' ? entry.value : 0;
-                    return sum + val;
-                  }, 0);
-                  
+        </div>
+      </nav>
+
+      {/* Page content */}
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+            {/* Header with metrics */}
+            <div>
+              <div className="mb-6">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                  <span className="font-mono">0x4169447a424ec645f8a24dccfd8328f714dd5562</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                  Last updated: {new Date().toLocaleString()}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                  title="Total Revenue"
+                  value={formatCurrency(totalFees)}
+                  subtitle="All time"
+                  color={DESIGN_SYSTEM.colors.primary[500]}
+                  icon={
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  }
+                />
+
+                {Object.entries(data?.currencyBreakdown || {}).map(([currency, breakdown]) => {
+                  const color = CURRENCY_COLORS[currency as keyof typeof CURRENCY_COLORS] || DESIGN_SYSTEM.colors.gray[400];
                   return (
-                    <div style={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e5e5',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      padding: '12px',
-                    }}>
-                      <div style={{ 
-                        color: '#333', 
-                        fontWeight: 600, 
-                        marginBottom: '8px',
-                        fontSize: '14px',
-                        borderBottom: '1px solid #e5e5e5',
-                        paddingBottom: '6px'
-                      }}>
-                        {label}
-                      </div>
-                      {payload
-                        .filter(entry => entry.value && typeof entry.value === 'number' && entry.value > 0)
-                        .map((entry, index) => (
-                          <div key={index} style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between',
-                            marginBottom: '4px',
-                            fontSize: '13px',
-                            color: '#666'
-                          }}>
-                            <span style={{ display: 'flex', alignItems: 'center' }}>
-                              <span style={{
-                                display: 'inline-block',
-                                width: '12px',
-                                height: '12px',
-                                backgroundColor: entry.color || '#666',
-                                marginRight: '6px',
-                                borderRadius: '2px'
-                              }}></span>
-                              {entry.name}:
-                            </span>
-                            <span style={{ fontWeight: 500, color: '#333', marginLeft: '12px' }}>
-                              ${(entry.value as number).toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                            </span>
+                    <MetricCard
+                      key={currency}
+                      title={`${currency} Revenue`}
+                      value={formatCurrency(breakdown.totalUSD)}
+                      subtitle={`${formatValue(breakdown.total)} tokens`}
+                      color={color}
+                      icon={
+                        <div className="w-4 h-4 rounded-sm flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: color }}>
+                          {currency.slice(0, 2)}
+                        </div>
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Revenue Chart */}
+              <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Revenue Timeline</h2>
+                    <p className="text-sm text-gray-500 mt-1">Fee collection trends</p>
+                  </div>
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    {['daily', 'weekly', 'monthly'].map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab as any)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                          activeTab === tab
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+            
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis 
+                      dataKey="displayDate" 
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} 
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload || !payload.length) return null;
+                        const total = payload.reduce((sum, entry) => sum + (entry.value as number || 0), 0);
+                        return (
+                          <div className="bg-white border border-gray-200 rounded-xl shadow-xl p-4 min-w-[220px]">
+                            <p className="font-semibold text-gray-900 mb-3">{label}</p>
+                            {payload.map((entry, index) => (
+                              <div key={index} className="flex justify-between items-center mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: entry.color }}
+                                  ></div>
+                                  <span className="text-sm text-gray-600">{entry.name}</span>
+                                </div>
+                                <span className="font-semibold text-gray-900">{formatCurrency(entry.value as number)}</span>
+                              </div>
+                            ))}
+                            <div className="border-t border-gray-200 mt-3 pt-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-semibold text-gray-900">Total</span>
+                                <span className="font-bold text-gray-900">{formatCurrency(total)}</span>
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      <div style={{ 
-                        marginTop: '8px',
-                        paddingTop: '8px',
-                        borderTop: '1px solid #e5e5e5',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        color: '#333'
-                      }}>
-                        <span>Total:</span>
-                        <span>${total.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="ETH" stackId="fees" fill={CURRENCY_COLORS.ETH} name="ETH" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="WETH" stackId="fees" fill={CURRENCY_COLORS.WETH} name="WETH" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="USDC" stackId="fees" fill={CURRENCY_COLORS.USDC} name="USDC" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Distribution */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Revenue Mix</h2>
+                  <p className="text-sm text-gray-500 mt-1">By currency</p>
+                </div>
+            
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={35}
+                      outerRadius={70}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={CURRENCY_COLORS[entry.name as keyof typeof CURRENCY_COLORS] || DESIGN_SYSTEM.colors.gray[400]} 
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                <div className="space-y-3 mt-4">
+                  {pieData.map((entry) => (
+                    <div key={entry.name} className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: CURRENCY_COLORS[entry.name as keyof typeof CURRENCY_COLORS] || DESIGN_SYSTEM.colors.gray[400] }}
+                        ></div>
+                        <span className="text-sm font-medium text-gray-700">{entry.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(entry.value)}</p>
+                        <p className="text-xs text-gray-500">{entry.percentage.toFixed(1)}%</p>
                       </div>
                     </div>
-                  );
-                }}
-                labelStyle={{ color: '#333', fontWeight: 600 }}
-              />
-              <Legend />
-              <Bar dataKey="USDC" stackId="a" fill={CURRENCY_COLORS.USDC} radius={[0, 0, 0, 0]} />
-              <Bar dataKey="WETH" stackId="a" fill={CURRENCY_COLORS.WETH} radius={[0, 0, 0, 0]} />
-              <Bar dataKey="HUSDC" stackId="a" fill={CURRENCY_COLORS.HUSDC} radius={[0, 0, 0, 0]} />
-              <Bar dataKey="WHYPE" stackId="a" fill={CURRENCY_COLORS.WHYPE} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {recentTransactions.length > 0 && (
-        <div className="chart-container">
-          <h2>Last 20 Transactions</h2>
-          <div style={{
-            background: 'white',
-            border: '1px solid #e5e5e5',
-            borderRadius: '8px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr',
-              gap: '1rem',
-              padding: '1rem',
-              background: '#fafafa',
-              borderBottom: '1px solid #e5e5e5',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              color: '#666'
-            }}>
-              <div>Date</div>
-              <div>Currency</div>
-              <div>Amount</div>
-              <div>USD Amount</div>
-              <div>Network</div>
-              <div>Hash</div>
-            </div>
-            {recentTransactions.map((tx, index) => {
-              const date = new Date(tx.timestamp);
-              const value = parseTransactionValue(tx.value, tx.tokenDecimal || 18);
-              const explorerUrl = tx.network === 'ethereum' 
-                ? `https://etherscan.io/tx/${tx.hash}`
-                : `https://hyperevmscan.io/tx/${tx.hash}`;
-              
-              // Use unique key: hash + from + value to handle multiple transfers in same tx
-              const uniqueKey = `${tx.hash}-${tx.from}-${tx.value}`;
-              
-              return (
-                <div
-                  key={uniqueKey}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr',
-                    gap: '1rem',
-                    padding: '1rem',
-                    borderBottom: index < recentTransactions.length - 1 ? '1px solid #f0f0f0' : 'none',
-                    fontSize: '0.875rem',
-                    color: '#333'
-                  }}
-                >
-                  <div>{format(date, 'MMM dd, yyyy HH:mm')}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{
-                      display: 'inline-block',
-                      width: '8px',
-                      height: '8px',
-                      backgroundColor: CURRENCY_COLORS[tx.tokenSymbol || ''] || '#666',
-                      borderRadius: '2px'
-                    }}></span>
-                    {tx.tokenSymbol || 'N/A'}
-                  </div>
-                  <div>{value.toFixed(6)}</div>
-                  <div style={{ fontWeight: 500, color: '#171717' }}>
-                    ${tx.usdValue !== undefined ? tx.usdValue.toFixed(2) : '0.00'}
-                  </div>
-                  <div style={{ textTransform: 'capitalize' }}>{tx.network}</div>
-                  <div>
-                    <a
-                      href={explorerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: '#2775CA',
-                        textDecoration: 'none',
-                        fontFamily: 'monospace',
-                        fontSize: '0.75rem'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                      onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                    >
-                      {tx.hash.slice(0, 10)}...
-                    </a>
-                  </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            </div>
+
+        {/* Transactions Table */}
+        {recentTransactions.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+              <p className="text-sm text-gray-500 mt-1">Latest transactions</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Asset</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Amount</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Value</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Tx Hash</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {recentTransactions.slice(0, 8).map((tx, index) => {
+                    const date = new Date(tx.timestamp);
+                    const value = parseTransactionValue(tx.value, tx.tokenDecimal || 18);
+                    const color = CURRENCY_COLORS[tx.tokenSymbol as keyof typeof CURRENCY_COLORS] || DESIGN_SYSTEM.colors.gray[400];
+                    
+                    return (
+                      <tr key={`${tx.hash}-${index}`} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {format(date, 'MMM dd')}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {format(date, 'HH:mm')}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: color }}
+                            ></div>
+                            <span className="text-sm font-medium text-gray-900">{tx.tokenSymbol}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-sm font-mono text-gray-900">
+                            {formatValue(value)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {formatCurrency(tx.usdValue || 0)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <a
+                            href={`https://etherscan.io/tx/${tx.hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 font-mono text-sm transition-colors"
+                          >
+                            {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
-

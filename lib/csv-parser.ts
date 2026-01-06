@@ -37,27 +37,13 @@ export function parseCSVTransactions(csvContent: string, network: 'ethereum' | '
       continue;
     }
     
-    // Determine currency symbol based on network and token
+    // Accept all token symbols, determine appropriate decimals
     let symbol = tokenSymbol.toUpperCase();
-    let decimals = 18;
+    let decimals = 18; // Default to 18 decimals
     
-    if (network === 'ethereum') {
-      // Ethereum: Only USDC and WETH
-      if (symbol !== 'USDC' && symbol !== 'WETH') {
-        continue;
-      }
-      decimals = symbol === 'USDC' ? 6 : 18;
-    } else {
-      // HyperEVM: USDC becomes HUSDC, WHYPE stays WHYPE
-      if (symbol === 'USDC') {
-        symbol = 'HUSDC'; // Tag HyperEVM USDC as HUSDC
-        decimals = 6;
-      } else if (symbol === 'WHYPE' || symbol === 'WRHYPER' || tokenName?.toUpperCase().includes('WRAP')) {
-        symbol = 'WHYPE';
-        decimals = 18;
-      } else {
-        continue; // Skip other tokens
-      }
+    // Set appropriate decimals for known tokens
+    if (symbol === 'USDC' || symbol === 'HUSDC') {
+      decimals = 6;
     }
     
     // Parse token value (already in human-readable format, may have commas)
