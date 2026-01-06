@@ -1,0 +1,655 @@
+
+> gondi-fees@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1021ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.9s (1585 modules)
+ GET / 200 in 3147ms
+ ✓ Compiled in 233ms (801 modules)
+ ○ Compiling /api/fees ...
+ ✓ Compiled /api/fees in 1456ms (856 modules)
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+ℹ️ No transactions found for this request
+✅ Received 29 results
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { USDC: 0.999776, WETH: 3218.29 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 4034ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 1466ms
+ ✓ Compiled in 375ms (1585 modules)
+ ✓ Compiled in 182ms (1585 modules)
+ ✓ Compiled in 233ms (1585 modules)
+ GET / 200 in 104ms
+ ✓ Compiled /api/fees in 88ms (856 modules)
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 1996ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 1304ms
+ ✓ Compiled in 402ms (1585 modules)
+ GET / 200 in 127ms
+ ✓ Compiled /api/fees in 70ms (856 modules)
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 2101ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 1528ms
+ ✓ Compiled in 284ms (1657 modules)
+ GET / 200 in 114ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 2070ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (7997497 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8830 results
+✅ Processed 8829 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8857 unique transactions
+📊 By currency: { WETH: 6386, USDC: 2443, ETH: 28 }
+📊 Processing 8857 transactions...
+📊 Aggregating 8857 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133014.56 total
+✅ Aggregation complete! Total: $133014.56
+ GET /api/fees 200 in 1334ms
+ GET / 200 in 47ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (8001137 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8834 results
+✅ Processed 8833 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8861 unique transactions
+📊 By currency: { WETH: 6390, USDC: 2443, ETH: 28 }
+📊 Processing 8861 transactions...
+📊 Aggregating 8861 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133017.49 total
+✅ Aggregation complete! Total: $133017.49
+ GET /api/fees 200 in 2014ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (8001137 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8834 results
+✅ Processed 8833 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8861 unique transactions
+📊 By currency: { WETH: 6390, USDC: 2443, ETH: 28 }
+📊 Processing 8861 transactions...
+📊 Aggregating 8861 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133017.49 total
+✅ Aggregation complete! Total: $133017.49
+ GET /api/fees 200 in 1776ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (8001141 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8834 results
+✅ Processed 8833 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8861 unique transactions
+📊 By currency: { WETH: 6390, USDC: 2443, ETH: 28 }
+📊 Processing 8861 transactions...
+📊 Aggregating 8861 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133017.49 total
+✅ Aggregation complete! Total: $133017.49
+ GET /api/fees 200 in 1899ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (8001141 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8834 results
+✅ Processed 8833 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8861 unique transactions
+📊 By currency: { WETH: 6390, USDC: 2443, ETH: 28 }
+📊 Processing 8861 transactions...
+📊 Aggregating 8861 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133017.49 total
+✅ Aggregation complete! Total: $133017.49
+ GET /api/fees 200 in 3222ms
+🚀 Starting GONDI fee data fetch...
+🔍 Fetching transactions for GONDI contract: 0x4169447a424ec645f8a24dccfd8328f714dd5562
+📅 Date range: Oct 22, 2025 onwards
+🔗 Starting parallel API calls...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlistinternal&address=0x4169447a424...
+🔗 API call (attempt 1): https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x4169447a424ec645f8a...
+✅ Received 29 results
+ℹ️ No transactions found for this request
+Failed to set fetch cache https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x4169447a424ec645f8a24dccfd8328f714dd5562&startblock=0&endblock=99999999&sort=asc&apikey=54W3B1IFY9JNU55IGIBU1VUIFTJ7F7D619 Error: Failed to set Next.js data cache, items over 2MB can not be cached (8001141 bytes)
+    at IncrementalCache.set (/Users/guimar/gondifees/node_modules/next/dist/server/lib/incremental-cache/index.js:388:23)
+    at /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:54468
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (webpack-internal:///(rsc)/./lib/blockchain.ts:33:30)
+    at async Promise.allSettled (index 0)
+    at async fetchEthereumTransactions (webpack-internal:///(rsc)/./lib/blockchain.ts:83:64)
+    at async GET (webpack-internal:///(rsc)/./app/api/fees/route.ts:18:30)
+    at async /Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57228
+    at async eT.execute (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46851)
+    at async eT.handle (/Users/guimar/gondifees/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:58760)
+    at async doRender (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1496:28)
+    at async DevServer.renderPageComponent (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/guimar/gondifees/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/guimar/gondifees/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/guimar/gondifees/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/guimar/gondifees/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/guimar/gondifees/node_modules/next/dist/server/lib/start-server.js:141:13)
+✅ Received 8834 results
+✅ Processed 8833 ERC-20 token transactions
+✅ Processed 28 internal ETH transactions
+✅ Processed 0 normal ETH transactions
+🎯 Final Summary: 8861 unique transactions
+📊 By currency: { WETH: 6390, USDC: 2443, ETH: 28 }
+📊 Processing 8861 transactions...
+📊 Aggregating 8861 transactions...
+💰 Currencies found: [ 'WETH', 'USDC' ]
+💵 Token prices: { WETH: 3218.29, USDC: 0.999776 }
+✅ Aggregation complete: $133017.49 total
+✅ Aggregation complete! Total: $133017.49
+ GET /api/fees 200 in 1862ms
+ ✓ Compiled in 365ms (1657 modules)
+ ✓ Compiled in 325ms (1657 modules)
+ ✓ Compiled in 277ms (1657 modules)
+ ✓ Compiled in 150ms (1657 modules)

@@ -119,12 +119,22 @@ function getChartData(data: AggregatedFees | null, activeTab: 'daily' | 'weekly'
       let displayDate: string;
       if (activeTab === 'monthly') {
         // Monthly format: '2025-10' -> 'Oct 2025'
-        const monthDate = new Date(date + '-01T00:00:00Z');
-        displayDate = format(monthDate, 'MMM yyyy');
+        try {
+          const monthDate = new Date(date + '-01T00:00:00Z');
+          displayDate = format(monthDate, 'MMM yyyy');
+        } catch (error) {
+          console.error('Error formatting monthly date:', date, error);
+          displayDate = date; // Fallback to raw date
+        }
       } else {
         // Daily/Weekly format: '2025-10-22' -> 'Oct 22'  
-        const dayDate = new Date(date + 'T00:00:00Z');
-        displayDate = format(dayDate, 'MMM dd');
+        try {
+          const dayDate = new Date(date + 'T00:00:00Z');
+          displayDate = format(dayDate, 'MMM dd');
+        } catch (error) {
+          console.error('Error formatting daily/weekly date:', date, error);
+          displayDate = date; // Fallback to raw date
+        }
       }
       
       return {

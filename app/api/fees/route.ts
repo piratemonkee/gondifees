@@ -40,6 +40,15 @@ export async function GET(request: Request) {
     // Calculate total USD value
     const grandTotalUSD = Object.values(aggregated.currencyBreakdown).reduce((sum, breakdown) => sum + breakdown.totalUSD, 0);
     console.log(`✅ Aggregation complete! Total: $${grandTotalUSD.toFixed(2)}`);
+    
+    // Ensure currency breakdown exists and has proper structure
+    if (!aggregated.currencyBreakdown || Object.keys(aggregated.currencyBreakdown).length === 0) {
+      console.warn('⚠️ No currency breakdown data found, this might indicate API issues');
+    } else {
+      console.log(`💰 Currency breakdown keys:`, Object.keys(aggregated.currencyBreakdown));
+    }
+    
+    console.log(`📅 Monthly data keys:`, Object.keys(aggregated.monthly));
 
     // Get recent transactions for display
     const { getMultipleTokenPrices } = await import('@/lib/prices');
